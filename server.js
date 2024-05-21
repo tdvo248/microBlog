@@ -1,7 +1,10 @@
 const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
+const fetch = require('node-fetch');
 const { createCanvas, loadImage } = require('canvas');
+require('dotenv').config();
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Configuration and Setup
@@ -9,6 +12,7 @@ const { createCanvas, loadImage } = require('canvas');
 
 const app = express();
 const PORT = 3000;
+const EMOJI_API_KEY = process.env.EMOJI_API_KEY;;
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,6 +103,16 @@ app.get('/', (req, res) => {
     const posts = getPosts();
     const user = getCurrentUser(req) || {};
     res.render('home', { posts, user });
+});
+
+app.get('/api/emojis', async (req, res) => {
+    try {
+        const response = await fetch(`https://emoji-api.com/emojis?access_key=${EMOJI_API_KEY}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch emojis' });
+    }
 });
 
 
