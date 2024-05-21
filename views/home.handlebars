@@ -7,10 +7,9 @@
         <!-- show the create post form when logged in -->
         <h1>Create a New Post</h1>
         <section class="post-form">
-            <!-- make a header here -->
             <form action="/posts" method="POST">
                 <!-- title input field name = "title" -->
-                <div class="from-group">
+                <div class="form-group">
                     <input type="text" id="title" name="title" placeholder="Title" oninput="updateLabel('title-label', this.value)" required>
                 </div>
                 <!-- text area input field name = "content" -->
@@ -25,8 +24,12 @@
             </form>
 
             <div id="emoji-container" class="emoji-panel" style="display: none;">
-                <!-- input field for the emoji search, use oninput="searchEmojis() -->
-                <!-- a div, id = "emoji-grid" -->
+                <input type="text" id="emoji-search" placeholder="Search emojis..." oninput="searchEmojis()">
+                <div id="emoji-grid"></div>
+                <div class="pagination">
+                    <button id="prev-page" onclick="prevPage()">Prev</button>
+                    <button id="next-page" onclick="nextPage()">Next</button>
+                </div>
             </div>
         </section>
     {{/if}}
@@ -37,45 +40,330 @@
         {{#if posts.length}}
         <ul>
             {{#each posts}}
-                <!-- you have to pass the user in to posts and this is the syntax -->
                 {{> post this user=../user}}            
             {{/each}}
         </ul>
         {{else}}
-            <!-- no posts, oh no, what now? -->
             <p>No posts.</p>
         {{/if}}
     </section>
 </section>
 
-
 {{! JavaScript for Emoji Integration }}
 <script>
 
-/*
- You want to show a subset of the emojis. About 200. However,
- you also want the user to be able to search all emojis,
- so, put them in this array when the array is empty so 
- that you have them.
-*/
+let allEmojis = [
+    { character: '😀', slug: 'grinning-face' },
+    { character: '😃', slug: 'grinning-face-with-big-eyes' },
+    { character: '😄', slug: 'grinning-face-with-smiling-eyes' },
+    { character: '😁', slug: 'beaming-face-with-smiling-eyes' },
+    { character: '😆', slug: 'grinning-squinting-face' },
+    { character: '😅', slug: 'grinning-face-with-sweat' },
+    { character: '🤣', slug: 'rolling-on-the-floor-laughing' },
+    { character: '😂', slug: 'face-with-tears-of-joy' },
+    { character: '🙂', slug: 'slightly-smiling-face' },
+    { character: '🙃', slug: 'upside-down-face' },
+    { character: '😉', slug: 'winking-face' },
+    { character: '😊', slug: 'smiling-face-with-smiling-eyes' },
+    { character: '😇', slug: 'smiling-face-with-halo' },
+    { character: '🥰', slug: 'smiling-face-with-hearts' },
+    { character: '😍', slug: 'smiling-face-with-heart-eyes' },
+    { character: '🤩', slug: 'star-struck' },
+    { character: '😘', slug: 'face-blowing-a-kiss' },
+    { character: '😗', slug: 'kissing-face' },
+    { character: '😚', slug: 'kissing-face-with-closed-eyes' },
+    { character: '😙', slug: 'kissing-face-with-smiling-eyes' },
+    { character: '😋', slug: 'face-savoring-food' },
+    { character: '😛', slug: 'face-with-tongue' },
+    { character: '😜', slug: 'winking-face-with-tongue' },
+    { character: '🤪', slug: 'zany-face' },
+    { character: '😝', slug: 'squinting-face-with-tongue' },
+    { character: '🤑', slug: 'money-mouth-face' },
+    { character: '🤗', slug: 'hugging-face' },
+    { character: '🤭', slug: 'face-with-hand-over-mouth' },
+    { character: '🤫', slug: 'shushing-face' },
+    { character: '🤔', slug: 'thinking-face' },
+    { character: '🤐', slug: 'zipper-mouth-face' },
+    { character: '🤨', slug: 'face-with-raised-eyebrow' },
+    { character: '😐', slug: 'neutral-face' },
+    { character: '😑', slug: 'expressionless-face' },
+    { character: '😶', slug: 'face-without-mouth' },
+    { character: '😏', slug: 'smirking-face' },
+    { character: '😒', slug: 'unamused-face' },
+    { character: '🙄', slug: 'face-with-rolling-eyes' },
+    { character: '😬', slug: 'grimacing-face' },
+    { character: '🤥', slug: 'lying-face' },
+    { character: '😌', slug: 'relieved-face' },
+    { character: '😔', slug: 'pensive-face' },
+    { character: '😪', slug: 'sleepy-face' },
+    { character: '🤤', slug: 'drooling-face' },
+    { character: '😴', slug: 'sleeping-face' },
+    { character: '😷', slug: 'face-with-medical-mask' },
+    { character: '🤒', slug: 'face-with-thermometer' },
+    { character: '🤕', slug: 'face-with-head-bandage' },
+    { character: '🤢', slug: 'nauseated-face' },
+    { character: '🤮', slug: 'face-vomiting' },
+    { character: '🤧', slug: 'sneezing-face' },
+    { character: '🥵', slug: 'hot-face' },
+    { character: '🥶', slug: 'cold-face' },
+    { character: '🥴', slug: 'woozy-face' },
+    { character: '😵', slug: 'dizzy-face' },
+    { character: '🤯', slug: 'exploding-head' },
+    { character: '🤠', slug: 'cowboy-hat-face' },
+    { character: '🥳', slug: 'partying-face' },
+    { character: '😎', slug: 'smiling-face-with-sunglasses' },
+    { character: '🤓', slug: 'nerd-face' },
+    { character: '🧐', slug: 'face-with-monocle' },
+    { character: '😕', slug: 'confused-face' },
+    { character: '😟', slug: 'worried-face' },
+    { character: '🙁', slug: 'slightly-frowning-face' },
+    { character: '☹️', slug: 'frowning-face' },
+    { character: '😮', slug: 'face-with-open-mouth' },
+    { character: '😯', slug: 'hushed-face' },
+    { character: '😲', slug: 'astonished-face' },
+    { character: '😳', slug: 'flushed-face' },
+    { character: '🥺', slug: 'pleading-face' },
+    { character: '😦', slug: 'frowning-face-with-open-mouth' },
+    { character: '😧', slug: 'anguished-face' },
+    { character: '😨', slug: 'fearful-face' },
+    { character: '😰', slug: 'anxious-face-with-sweat' },
+    { character: '😥', slug: 'sad-but-relieved-face' },
+    { character: '😢', slug: 'crying-face' },
+    { character: '😭', slug: 'loudly-crying-face' },
+    { character: '😱', slug: 'face-screaming-in-fear' },
+    { character: '😖', slug: 'confounded-face' },
+    { character: '😣', slug: 'persevering-face' },
+    { character: '😞', slug: 'disappointed-face' },
+    { character: '😓', slug: 'downcast-face-with-sweat' },
+    { character: '😩', slug: 'weary-face' },
+    { character: '😫', slug: 'tired-face' },
+    { character: '😤', slug: 'face-with-steam-from-nose' },
+    { character: '😡', slug: 'pouting-face' },
+    { character: '😠', slug: 'angry-face' },
+    { character: '🤬', slug: 'face-with-symbols-on-mouth' },
+    { character: '😈', slug: 'smiling-face-with-horns' },
+    { character: '👿', slug: 'angry-face-with-horns' },
+    { character: '💀', slug: 'skull' },
+    { character: '☠️', slug: 'skull-and-crossbones' },
+    { character: '💩', slug: 'pile-of-poo' },
+    { character: '🤡', slug: 'clown-face' },
+    { character: '👹', slug: 'ogre' },
+    { character: '👺', slug: 'goblin' },
+    { character: '👻', slug: 'ghost' },
+    { character: '👽', slug: 'alien' },
+    { character: '👾', slug: 'alien-monster' },
+    { character: '🤖', slug: 'robot' },
+    { character: '😺', slug: 'grinning-cat' },
+    { character: '😸', slug: 'grinning-cat-with-smiling-eyes' },
+    { character: '😹', slug: 'cat-with-tears-of-joy' },
+    { character: '😻', slug: 'smiling-cat-with-heart-eyes' },
+    { character: '😼', slug: 'cat-with-wry-smile' },
+    { character: '😽', slug: 'kissing-cat' },
+    { character: '🙀', slug: 'weary-cat' },
+    { character: '😿', slug: 'crying-cat' },
+    { character: '😾', slug: 'pouting-cat' },
+    { character: '🙈', slug: 'see-no-evil-monkey' },
+    { character: '🙉', slug: 'hear-no-evil-monkey' },
+    { character: '🙊', slug: 'speak-no-evil-monkey' },
+    { character: '💋', slug: 'kiss-mark' },
+    { character: '💌', slug: 'love-letter' },
+    { character: '💘', slug: 'heart-with-arrow' },
+    { character: '💝', slug: 'heart-with-ribbon' },
+    { character: '💖', slug: 'sparkling-heart' },
+    { character: '💗', slug: 'growing-heart' },
+    { character: '💓', slug: 'beating-heart' },
+    { character: '💞', slug: 'revolving-hearts' },
+    { character: '💕', slug: 'two-hearts' },
+    { character: '💟', slug: 'heart-decoration' },
+    { character: '❣️', slug: 'heart-exclamation' },
+    { character: '💔', slug: 'broken-heart' },
+    { character: '❤️', slug: 'red-heart' },
+    { character: '🧡', slug: 'orange-heart' },
+    { character: '💛', slug: 'yellow-heart' },
+    { character: '💚', slug: 'green-heart' },
+    { character: '💙', slug: 'blue-heart' },
+    { character: '💜', slug: 'purple-heart' },
+    { character: '🤎', slug: 'brown-heart' },
+    { character: '🖤', slug: 'black-heart' },
+    { character: '🤍', slug: 'white-heart' },
+    { character: '💯', slug: 'hundred-points' },
+    { character: '💢', slug: 'anger-symbol' },
+    { character: '💥', slug: 'collision' },
+    { character: '💫', slug: 'dizzy' },
+    { character: '💦', slug: 'sweat-droplets' },
+    { character: '💨', slug: 'dashing-away' },
+    { character: '🕳️', slug: 'hole' },
+    { character: '💣', slug: 'bomb' },
+    { character: '💬', slug: 'speech-balloon' },
+    { character: '👁️‍🗨️', slug: 'eye-in-speech-bubble' },
+    { character: '🗨️', slug: 'left-speech-bubble' },
+    { character: '🗯️', slug: 'right-anger-bubble' },
+    { character: '💭', slug: 'thought-balloon' },
+    { character: '💤', slug: 'zzz' },
+    { character: '🧑‍🦰', slug: 'person-red-hair' },
+    { character: '🧑‍🦱', slug: 'person-curly-hair' },
+    { character: '🧑‍🦳', slug: 'person-white-hair' },
+    { character: '🧑‍🦲', slug: 'person-bald' },
+    { character: '🧔', slug: 'bearded-person' },
+    { character: '👵', slug: 'old-woman' },
+    { character: '👴', slug: 'old-man' },
+    { character: '👶', slug: 'baby' },
+    { character: '👧', slug: 'girl' },
+    { character: '👦', slug: 'boy' },
+    { character: '👩', slug: 'woman' },
+    { character: '👨', slug: 'man' },
+    { character: '🧑', slug: 'person' },
+    { character: '👩‍⚕️', slug: 'woman-health-worker' },
+    { character: '👨‍⚕️', slug: 'man-health-worker' },
+    { character: '👩‍🎓', slug: 'woman-student' },
+    { character: '👨‍🎓', slug: 'man-student' },
+    { character: '👩‍🏫', slug: 'woman-teacher' },
+    { character: '👨‍🏫', slug: 'man-teacher' },
+    { character: '👩‍⚖️', slug: 'woman-judge' },
+    { character: '👨‍⚖️', slug: 'man-judge' },
+    { character: '👩‍🌾', slug: 'woman-farmer' },
+    { character: '👨‍🌾', slug: 'man-farmer' },
+    { character: '👩‍🍳', slug: 'woman-cook' },
+    { character: '👨‍🍳', slug: 'man-cook' },
+    { character: '👩‍🔧', slug: 'woman-mechanic' },
+    { character: '👨‍🔧', slug: 'man-mechanic' },
+    { character: '👩‍🏭', slug: 'woman-factory-worker' },
+    { character: '👨‍🏭', slug: 'man-factory-worker' },
+    { character: '👩‍💼', slug: 'woman-office-worker' },
+    { character: '👨‍💼', slug: 'man-office-worker' },
+    { character: '👩‍🔬', slug: 'woman-scientist' },
+    { character: '👨‍🔬', slug: 'man-scientist' },
+    { character: '👩‍💻', slug: 'woman-technologist' },
+    { character: '👨‍💻', slug: 'man-technologist' },
+    { character: '👩‍🎤', slug: 'woman-singer' },
+    { character: '👨‍🎤', slug: 'man-singer' },
+    { character: '👩‍🎨', slug: 'woman-artist' },
+    { character: '👨‍🎨', slug: 'man-artist' },
+    { character: '👩‍✈️', slug: 'woman-pilot' },
+    { character: '👨‍✈️', slug: 'man-pilot' },
+    { character: '👩‍🚀', slug: 'woman-astronaut' },
+    { character: '👨‍🚀', slug: 'man-astronaut' },
+    { character: '👩‍🚒', slug: 'woman-firefighter' },
+    { character: '👨‍🚒', slug: 'man-firefighter' },
+    { character: '🧕', slug: 'woman-with-headscarf' },
+    { character: '👳‍♀️', slug: 'woman-wearing-turban' },
+    { character: '👳‍♂️', slug: 'man-wearing-turban' },
+    { character: '👲', slug: 'man-with-chinese-cap' },
+    { character: '🧑‍🦼', slug: 'person-in-motorized-wheelchair' },
+    { character: '🧑‍🦽', slug: 'person-in-manual-wheelchair' },
+    { character: '👼', slug: 'baby-angel' },
+    { character: '🎅', slug: 'Santa-Claus' },
+    { character: '🤶', slug: 'Mrs-Claus' },
+    { character: '🦸‍♀️', slug: 'woman-superhero' },
+    { character: '🦸‍♂️', slug: 'man-superhero' },
+    { character: '🦹‍♀️', slug: 'woman-supervillain' },
+    { character: '🦹‍♂️', slug: 'man-supervillain' },
+    { character: '🧙‍♀️', slug: 'woman-mage' },
+    { character: '🧙‍♂️', slug: 'man-mage' },
+    { character: '🧚‍♀️', slug: 'woman-fairy' },
+    { character: '🧚‍♂️', slug: 'man-fairy' },
+    { character: '🧛‍♀️', slug: 'woman-vampire' },
+    { character: '🧛‍♂️', slug: 'man-vampire' },
+    { character: '🧜‍♀️', slug: 'mermaid' },
+    { character: '🧜‍♂️', slug: 'merman' },
+    { character: '🧝‍♀️', slug: 'woman-elf' },
+    { character: '🧝‍♂️', slug: 'man-elf' },
+    { character: '🧞‍♀️', slug: 'woman-genie' },
+    { character: '🧞‍♂️', slug: 'man-genie' },
+    { character: '🧟‍♀️', slug: 'woman-zombie' },
+    { character: '🧟‍♂️', slug: 'man-zombie' },
+    { character: '👭', slug: 'women-holding-hands' },
+    { character: '👫', slug: 'man-and-woman-holding-hands' },
+    { character: '👬', slug: 'men-holding-hands' },
+    { character: '💏', slug: 'kiss' },
+    { character: '👩‍❤️‍💋‍👨', slug: 'woman-kiss-man' },
+    { character: '👨‍❤️‍💋‍👨', slug: 'man-kiss-man' },
+    { character: '👩‍❤️‍💋‍👩', slug: 'woman-kiss-woman' },
+    { character: '💑', slug: 'couple-with-heart' },
+    { character: '👩‍❤️‍👨', slug: 'woman-heart-man' },
+    { character: '👨‍❤️‍👨', slug: 'man-heart-man' },
+    { character: '👩‍❤️‍👩', slug: 'woman-heart-woman' },
+    { character: '👪', slug: 'family' },
+    { character: '👨‍👩‍👦', slug: 'family-man-woman-boy' },
+    { character: '👨‍👩‍👧', slug: 'family-man-woman-girl' },
+    { character: '👨‍👩‍👧‍👦', slug: 'family-man-woman-girl-boy' },
+    { character: '👨‍👩‍👦‍👦', slug: 'family-man-woman-boy-boy' },
+    { character: '👨‍👩‍👧‍👧', slug: 'family-man-woman-girl-girl' },
+    { character: '👨‍👨‍👦', slug: 'family-man-man-boy' },
+    { character: '👨‍👨‍👧', slug: 'family-man-man-girl' },
+    { character: '👨‍👨‍👧‍👦', slug: 'family-man-man-girl-boy' },
+    { character: '👨‍👨‍👦‍👦', slug: 'family-man-man-boy-boy' },
+    { character: '👨‍👨‍👧‍👧', slug: 'family-man-man-girl-girl' },
+    { character: '👩‍👩‍👦', slug: 'family-woman-woman-boy' },
+    { character: '👩‍👩‍👧', slug: 'family-woman-woman-girl' },
+    { character: '👩‍👩‍👧‍👦', slug: 'family-woman-woman-girl-boy' },
+    { character: '👩‍👩‍👦‍👦', slug: 'family-woman-woman-boy-boy' },
+    { character: '👩‍👩‍👧‍👧', slug: 'family-woman-woman-girl-girl' },
+    { character: '👨‍👦', slug: 'family-man-boy' },
+    { character: '👨‍👦‍👦', slug: 'family-man-boy-boy' },
+    { character: '👨‍👧', slug: 'family-man-girl' },
+    { character: '👨‍👧‍👧', slug: 'family-man-girl-girl' },
+    { character: '👩‍👦', slug: 'family-woman-boy' },
+    { character: '👩‍👦‍👦', slug: 'family-woman-boy-boy' },
+    { character: '👩‍👧', slug: 'family-woman-girl' },
+    { character: '👩‍👧‍👧', slug: 'family-woman-girl-girl' },
+    { character: '🚶', slug: 'person-walking' },
+    { character: '🏃', slug: 'person-running' },
+    { character: '💃', slug: 'woman-dancing' },
+    { character: '🕺', slug: 'man-dancing' },
+    { character: '👯', slug: 'people-with-bunny-ears' },
+    { character: '🧖', slug: 'person-in-steamy-room' },
+    { character: '🧗', slug: 'person-climbing' },
+    { character: '🤺', slug: 'person-fencing' },
+    { character: '🏇', slug: 'horse-racing' },
+    { character: '⛷️', slug: 'skier' },
+    { character: '🏂', slug: 'snowboarder' },
+    { character: '🏌️', slug: 'person-golfing' },
+    { character: '🏄', slug: 'person-surfing' },
+    { character: '🚣', slug: 'person-rowing-boat' },
+    { character: '🏊', slug: 'person-swimming' },
+    { character: '⛹️', slug: 'person-bouncing-ball' },
+    { character: '🏋️', slug: 'person-lifting-weights' },
+    { character: '🚴', slug: 'person-biking' },
+    { character: '🚵', slug: 'person-mountain-biking' },
+    { character: '🤸', slug: 'person-cartwheeling' },
+    { character: '🤼', slug: 'people-wrestling' },
+    { character: '🤽', slug: 'person-playing-water-polo' },
+    { character: '🤾', slug: 'person-playing-handball' },
+    { character: '🤹', slug: 'person-juggling' },
+    { character: '🧘', slug: 'person-in-lotus-position' },
+    { character: '🛀', slug: 'person-taking-bath' },
+    { character: '🛌', slug: 'person-in-bed' },
+    { character: '🧑‍🤝‍🧑', slug: 'people-holding-hands' },
+    { character: '👭', slug: 'women-holding-hands' },
+    { character: '👫', slug: 'woman-and-man-holding-hands' },
+    { character: '👬', slug: 'men-holding-hands' }, 
+    { character: '🍆', slug: 'eggplant' }
+];
 
-let allEmojis = [];  // Global list to hold all emojis
+
+let currentPage = 1;
+const emojisPerPage = 10;
 
 function toggleEmojiPanel() {
     const container = document.getElementById('emoji-container');
     container.style.display = container.style.display === 'none' ? 'block' : 'none';
 
-
-    if(container.style.display === 'block' && allEmojis.length == 0){
-        // go "Fetch" you some emojis and show them off with displayEmojies
+    if (container.style.display === 'block') {
+        displayEmojis(allEmojis, emojisPerPage);
     }
 }
 
-function displayEmojis(emojis,limit=200) {
+function displayEmojis(emojis, limit = 10, page = 1) {
     const container = document.getElementById('emoji-grid');
     container.innerHTML = '';  // Clear previous results
-    if (Array.isArray(emojis) && emojis.length > 0) {
-        emojis.slice(0, limit).forEach(emoji => {
+
+    const start = (page - 1) * limit;
+    const end = page * limit;
+    const pageEmojis = emojis.slice(start, end);
+
+    if (Array.isArray(pageEmojis) && pageEmojis.length > 0) {
+        pageEmojis.forEach(emoji => {
             const emojiElement = document.createElement('span');
             emojiElement.textContent = emoji.character;
             emojiElement.title = emoji.slug;  // Showing the emoji name on hover
@@ -90,21 +378,38 @@ function displayEmojis(emojis,limit=200) {
 
 function searchEmojis() {
     const searchTerm = document.getElementById('emoji-search').value.toLowerCase();
-    // array.filter takes a predicate
-    // use string.includes. 
-
-    const filteredEmojis = allEmojis.filter(...);
-    
+    const filteredEmojis = allEmojis.filter(emoji =>
+        emoji.slug.includes(searchTerm)
+    );
     displayEmojis(filteredEmojis);
 }
 
 function insertEmoji(emoji) {
-    // put an emoji on a form somehow. 
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
 
-    // do this when you're doing getting the emoji on the form
-    //
+    textarea.value = before + emoji + after;
+    textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
     textarea.focus();  // Keep focus on the textarea
 }
 
-</script>
+function nextPage() {
+    const totalPages = Math.ceil(allEmojis.length / emojisPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        displayEmojis(allEmojis, emojisPerPage, currentPage);
+    }
+}
 
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        displayEmojis(allEmojis, emojisPerPage, currentPage);
+    }
+}
+
+</script>

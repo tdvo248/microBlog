@@ -2,8 +2,6 @@ const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const canvas = require('canvas');
-const fs = require('fs');
-const path = require('path');
 const Jimp = require('jimp');
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,6 +142,13 @@ app.post('/like/:id', (req, res) => {
 });
 app.get('/profile', isAuthenticated, (req, res) => {
     // TODO: Render profile page
+    const user = getCurrentUser(req);
+    if (user) {
+        const userPosts = getPostsByUser(user.username);
+        res.render('profile', { user: { ...user, posts: userPosts } });
+    } else {
+        res.redirect('/login');
+    }
 });
 app.get('/avatar/:username', (req, res) => {
     // TODO: Serve the avatar image for the user
@@ -288,6 +293,11 @@ function getCurrentUser(req) {
 // Function to get all posts, sorted by latest first
 function getPosts() {
     return posts.slice().reverse();
+}
+
+// Function to get posts by a specific user
+function getPostsByUser(username) {
+    return posts.filter(post => post.username === username);
 }
 
 // Function to add a new post
