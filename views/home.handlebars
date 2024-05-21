@@ -12,12 +12,10 @@
                 <!-- title input field name = "title" -->
                 <div class="from-group">
                     <input type="text" id="title" name="title" placeholder="Title" oninput="updateLabel('title-label', this.value)" required>
-                    <label id="title-label" for="title">Title</label>
                 </div>
                 <!-- text area input field name = "content" -->
                 <div class="form-group">
                     <textarea id="content" name="content" placeholder="Content" oninput="updateLabel('content-label',this.value)" required></textarea>
-                    <label id="content-label" for="content">Content</label>
                 </div>
                 
                 <div class="form-actions">
@@ -35,7 +33,7 @@
 
     <section class="posts-list">
         <!-- recent posts -->
-
+        <h1>Recent Posts</h1>
         {{#if posts.length}}
         <ul>
             {{#each posts}}
@@ -45,6 +43,7 @@
         </ul>
         {{else}}
             <!-- no posts, oh no, what now? -->
+            <p>No posts.</p>
         {{/if}}
     </section>
 </section>
@@ -106,5 +105,6 @@ function insertEmoji(emoji) {
     //
     textarea.focus();  // Keep focus on the textarea
 }
+
 </script>
 
