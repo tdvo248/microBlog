@@ -19,11 +19,11 @@
                     {{#if loggedIn}}
                         <li><a href="/">Home</a></li>
                         <li><a href="/profile">Profile</a></li>
-                        <li><a href="/logout">Logout <span>{{user.username}}</span></a></li>
+                        <li><a href="/logout">Logout</a></li>
                         <div class="user-info">
-                            <img src="{{#if user.avatar_url}}{{user.avatar_url}}{{else}}/avatar/{{user.username}}{{/if}}" 
+                            <img src="/avatar/{{user.username}}" 
                                  alt="User Avatar" 
-                                 class="header-avatar">
+                                 class="header-avatar"> 
                         </div>
                     {{else}}
                         <li><a href="/">Home</a></li>

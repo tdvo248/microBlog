@@ -2,6 +2,9 @@ const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const canvas = require('canvas');
+const fs = require('fs');
+const path = require('path');
+const Jimp = require('jimp');
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Configuration and Setup
@@ -144,6 +147,17 @@ app.get('/profile', isAuthenticated, (req, res) => {
 });
 app.get('/avatar/:username', (req, res) => {
     // TODO: Serve the avatar image for the user
+    const user = findUserByUsername(req.params.username);
+    if (!user) {
+        res.status(404).send('Avatar not found');
+        res.redirect('/');
+    }
+
+    console.log(req.params);
+
+    handleAvatar(req, res);
+
+
 });
 app.post('/register', (req, res) => {
     // TODO: Register a new user
@@ -151,9 +165,11 @@ app.post('/register', (req, res) => {
     if (findUserByUsername(username)) {
         return res.redirect('/register?error=Username already taken');
     }
+    // const avatarFilename = handleAvatar(username.charAt(0), users.length + 1);
     addUser(username);
     req.session.userId = username;
     req.session.loggedIn = true;
+    // console.log(`Register - ${req.session.userId}`);
     res.redirect('/');
 });
 app.post('/login', (req, res) => {
@@ -165,6 +181,8 @@ app.post('/login', (req, res) => {
     }
     req.session.userId = username;
     req.session.loggedIn = true;
+    // console.log(`Login - ${req.session.userId}`);
+    
     res.redirect('/');
 });
 app.get('/logout', (req, res) => {
@@ -214,7 +232,7 @@ function addUser(username) {
     const newUser = {
         id: users.length + 1,
         username,
-        avatar_url: undefined,
+        // avatar_url: avatarFilename,
         memberSince: new Date().toISOString(),
     };
     users.push(newUser);
@@ -257,6 +275,8 @@ function updatePostLikes(req, res) {
 // Function to handle avatar generation and serving
 function handleAvatar(req, res) {
     // TODO: Generate and serve the user's avatar image
+    const letter = req.params.username.charAt(0).toUpperCase();
+    generateAvatar(letter, req, res);
 }
 
 // Function to get the current user from session
@@ -285,7 +305,7 @@ function addPost(title, content, user) {
 }
 
 // Function to generate an image avatar
-function generateAvatar(letter, width = 100, height = 100) {
+async function generateAvatar(letter, req, res, width = 100, height = 100) {
     // TODO: Generate an avatar image with a letter
     // Steps:
     // 1. Choose a color scheme based on the letter
@@ -293,4 +313,26 @@ function generateAvatar(letter, width = 100, height = 100) {
     // 3. Draw the background color
     // 4. Draw the letter in the center
     // 5. Return the avatar as a PNG buffer
+
+    const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A6'];
+    const bgColor = colors[letter.charCodeAt(0) % colors.length];
+
+    const image = new Jimp(width, height, bgColor, (err, _) => {
+        if(err) throw err;
+    });
+
+    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+
+    image.print(font, 0, 0, {
+        text: letter,
+        alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+        alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+    }, width, height);
+
+    image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
+        if(err) throw err;
+        res.setHeader('Content-Type', 'image/png');
+        res.send(buffer);
+    });
+
 }
