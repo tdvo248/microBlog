@@ -102,6 +102,7 @@ app.get('/', (req, res) => {
     res.render('home', { posts, user });
 });
 
+
 // Register GET route is used for error response from registration
 //
 app.get('/register', (req, res) => {
@@ -138,8 +139,43 @@ app.post('/posts', (req, res) => {
     }
 });
 app.post('/like/:id', (req, res) => {
-    // TODO: Update post likes
+    const postId = parseInt(req.params.id);
+    const user = getCurrentUser(req);
+
+    if (!user) {
+        return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const post = posts.find(post => post.id === postId);
+
+    if (!post) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    if (post.username === user.username) {
+        return res.status(403).json({ success: false, message: 'Cannot like your own post' });
+    }
+
+    const liked = req.body.liked;
+
+    if (liked) {
+        if (!user.likedPosts) {
+            user.likedPosts = {};
+        }
+        if (!user.likedPosts[postId]) {
+            user.likedPosts[postId] = true;
+            post.likes += 1;
+        }
+    } else {
+        if (user.likedPosts && user.likedPosts[postId]) {
+            delete user.likedPosts[postId];
+            post.likes -= 1;
+        }
+    }
+
+    res.json({ success: true, likes: post.likes, liked: liked });
 });
+
 app.get('/profile', isAuthenticated, (req, res) => {
     // TODO: Render profile page
     const user = getCurrentUser(req);
@@ -237,11 +273,12 @@ function addUser(username) {
     const newUser = {
         id: users.length + 1,
         username,
-        // avatar_url: avatarFilename,
         memberSince: new Date().toISOString(),
+        likedPosts: {}  // Initialize likedPosts as an empty object
     };
     users.push(newUser);
 }
+
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
@@ -286,9 +323,13 @@ function handleAvatar(req, res) {
 
 // Function to get the current user from session
 function getCurrentUser(req) {
-    // TODO: Return the user object if the session user ID matches
-    return findUserByUsername(req.session.userId);
+    const user = findUserByUsername(req.session.userId);
+    if (user && !user.likedPosts) {
+        user.likedPosts = {}; // Ensure likedPosts is initialized
+    }
+    return user;
 }
+
 
 // Function to get all posts, sorted by latest first
 function getPosts() {

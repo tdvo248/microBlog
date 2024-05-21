@@ -15,27 +15,60 @@
             <!-- everything that is shown in the status bar -->
             <!-- Heart = ♥ -->
             <!-- font awesome  trashcan = <i class="fas fa-trash-alt"> </i>-->
-            <button data-id="{{id}}" onclick="handleLikeClick(event)">♥ {{likes}}</button>
             {{#ifCond user.username username}}
                 <button class="delete-button" data-id="{{id}}" onclick="handleDeleteClick(event)"><i class="fas fa-trash-alt"></i></button>
             {{/ifCond}}
+            {{#if user.likedPosts.[id]}}
+                <button class="like-button" data-id="{{id}}" data-liked="true" onclick="handleLikeClick(event)">♥ {{likes}}</button>
+            {{else}}
+                <button class="like-button" data-id="{{id}}" data-liked="false" onclick="handleLikeClick(event)">♡ {{likes}}</button>
+            {{/if}}
             <span>by {{username}} on {{timestamp}}</span>
         </div>        
     </div>
 </div>
 <script>
-
     function handleLikeClick(event) {
         const postId = event.target.getAttribute('data-id');
+        const liked = event.target.getAttribute('data-liked') === 'true';
 
-        // you might want to "fetch" something...        
+        fetch(`/like/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ liked: !liked })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                event.target.textContent = data.liked ? `♥ ${data.likes}` : `♡ ${data.likes}`;
+                event.target.setAttribute('data-liked', data.liked);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     }
 
     function handleDeleteClick(event) {
         const buttonElement = event.target.closest('.delete-button');
         const postId = buttonElement.getAttribute('data-id');        
 
-        // you might want to "fetch" something...        
-        
+        fetch(`/delete/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                buttonElement.closest('.post').remove();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     }    
 </script>
