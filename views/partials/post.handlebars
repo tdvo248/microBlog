@@ -16,8 +16,8 @@
             <!-- Heart = ♥ -->
             <!-- font awesome  trashcan = <i class="fas fa-trash-alt"> </i>-->
             <button data-id="{{id}}" onclick="handleLikeClick(event)">♥ {{likes}}</button>
-            {{#ifCond username ../user.username}}
-            <button class="delete-button" data-id="{{id}}" onclick="handleDeleteClick(event)"<i class="fas fa-trash-alt"></i>></button>
+            {{#ifCond user.username username}}
+                <button class="delete-button" data-id="{{id}}" onclick="handleDeleteClick(event)"><i class="fas fa-trash-alt"></i></button>
             {{/ifCond}}
             <span>by {{username}} on {{timestamp}}</span>
         </div>        
