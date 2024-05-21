@@ -25,6 +25,16 @@ header {
     align-items: center;
 }
 
+.post-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.right-column, .left-column {
+    width: 48%;
+}
+
 .logo {
     display: flex;
     align-items: center;
@@ -56,6 +66,8 @@ nav ul li a {
     text-decoration: none;
     color: #fff;
     font-size: 1.5rem;
+    display: flex;
+    align-items: center;
 }
 
 .user-info {
@@ -119,7 +131,7 @@ footer p {
 }
 
 button {
-    background: #4CAF50;
+    background: rgb(0, 157, 255);
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -128,7 +140,7 @@ button {
 }
 
 button:hover {
-    background: #45a049;
+    background: red;
 }
 
 #toggle-link {
@@ -190,7 +202,7 @@ textarea:not(:placeholder-shown) + label {
 }
 
 .pagination button {
-    background: #4CAF50;
+    background: rgb(0, 157, 255);
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -199,5 +211,31 @@ textarea:not(:placeholder-shown) + label {
 }
 
 .pagination button:hover {
-    background: #45a049;
+    background: rgb(0, 157, 255);
 }
+
+
+.emoji-button {
+    padding: 7px 20px;
+}
+
+
+.like-button {
+    border: none;
+    padding: 7px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.delete-button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+header nav ul {
+    display: flex;
+    align-items: center;
+}
+

@@ -1,9 +1,10 @@
 {{! Use the main layout }}
 {{!< main }}
 
-{{! New Post Submission Form }}
-<section class="content-container">
+{{! Main content container }}
+<section class="post-container">
     {{#if loggedIn}}
+    <div class="left-column">
         <!-- show the create post form when logged in -->
         <h1>Create a New Post</h1>
         <section class="post-form">
@@ -32,10 +33,10 @@
                 </div>
             </div>
         </section>
+    </div>
     {{/if}}
 
-    <section class="posts-list">
-        <!-- recent posts -->
+    <div class="right-column">
         <h1>Recent Posts</h1>
         {{#if posts.length}}
         <ul>
@@ -46,7 +47,7 @@
         {{else}}
             <p>No posts.</p>
         {{/if}}
-    </section>
+    </div>
 </section>
 
 {{! JavaScript for Emoji Integration }}
