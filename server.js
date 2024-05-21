@@ -1,8 +1,7 @@
 const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
-const canvas = require('canvas');
-const Jimp = require('jimp');
+const { createCanvas, loadImage } = require('canvas');
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Configuration and Setup
@@ -236,8 +235,30 @@ app.get('/logout', (req, res) => {
     });
 });
 app.post('/delete/:id', isAuthenticated, (req, res) => {
-    // TODO: Delete a post if the current user is the owner
+    const postId = parseInt(req.params.id);
+    const user = getCurrentUser(req);
+
+    if (!user) {
+        return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const postIndex = posts.findIndex(post => post.id === postId);
+
+    if (postIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    const post = posts[postIndex];
+
+    if (post.username !== user.username) {
+        return res.status(403).json({ success: false, message: 'Cannot delete posts that are not yours' });
+    }
+
+    posts.splice(postIndex, 1);
+
+    res.json({ success: true, message: 'Post deleted' });
 });
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Server Activation
@@ -287,31 +308,6 @@ function isAuthenticated(req, res, next) {
     } else {
         res.redirect('/login');
     }
-}
-
-// Function to register a user
-function registerUser(req, res) {
-    // TODO: Register a new user and redirect appropriately
-}
-
-// Function to login a user
-function loginUser(req, res) {
-    // TODO: Login a user and redirect appropriately
-}
-
-// Function to logout a user
-function logoutUser(req, res) {
-    // TODO: Destroy session and redirect appropriately
-}
-
-// Function to render the profile page
-function renderProfile(req, res) {
-    // TODO: Fetch user posts and render the profile page
-}
-
-// Function to update post likes
-function updatePostLikes(req, res) {
-    // TODO: Increment post likes if conditions are met
 }
 
 // Function to handle avatar generation and serving
@@ -365,25 +361,25 @@ async function generateAvatar(letter, req, res, width = 100, height = 100) {
     // 4. Draw the letter in the center
     // 5. Return the avatar as a PNG buffer
 
+    const canvas = createCanvas(width, height);
+    const context = canvas.getContext('2d');
+
     const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A6'];
     const bgColor = colors[letter.charCodeAt(0) % colors.length];
 
-    const image = new Jimp(width, height, bgColor, (err, _) => {
-        if(err) throw err;
-    });
+    // Draw background
+    context.fillStyle = bgColor;
+    context.fillRect(0, 0, width, height);
 
-    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+    // Draw letter
+    context.fillStyle = '#000';
+    context.font = 'bold 48px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(letter, width / 2, height / 2);
 
-    image.print(font, 0, 0, {
-        text: letter,
-        alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-        alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-    }, width, height);
-
-    image.getBuffer(Jimp.MIME_PNG, (err, buffer) => {
-        if(err) throw err;
-        res.setHeader('Content-Type', 'image/png');
-        res.send(buffer);
-    });
+    // Send image buffer
+    res.setHeader('Content-Type', 'image/png');
+    res.send(canvas.toBuffer('image/png'));
 
 }
