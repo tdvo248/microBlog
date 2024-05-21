@@ -22,7 +22,7 @@ header {
     align-items: center;
 }
 
-.logo{
+.logo {
     display: flex;
     align-items: center;
 }
@@ -82,4 +82,61 @@ footer {
 
 footer p {
     margin: 0;
+}
+
+.login-register {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+.form-area {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+button {
+    background: #4CAF50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background: #45a049;
+}
+
+#toggle-link {
+    margin-top: 15px;
+}
+
+#toggle-link a {
+    color: #007BFF;
+    text-decoration: none;
+}
+
+#toggle-link a:hover {
+    text-decoration: underline;
 }
