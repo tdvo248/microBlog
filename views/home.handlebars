@@ -5,12 +5,21 @@
 <section class="content-container">
     {{#if loggedIn}}
         <!-- show the create post form when logged in -->
+        <h1>Create a New Post</h1>
         <section class="post-form">
             <!-- make a header here -->
             <form action="/posts" method="POST">
                 <!-- title input field name = "title" -->
+                <div class="from-group">
+                    <input type="text" id="title" name="title" placeholder="Title" oninput="updateLabel('title-label', this.value)" required>
+                    <label id="title-label" for="title">Title</label>
+                </div>
                 <!-- text area input field name = "content" -->
-
+                <div class="form-group">
+                    <textarea id="content" name="content" placeholder="Content" oninput="updateLabel('content-label',this.value)" required></textarea>
+                    <label id="content-label" for="content">Content</label>
+                </div>
+                
                 <div class="form-actions">
                     <button type="button" class="emoji-button" onclick="toggleEmojiPanel()">😀</button>
                     <button type="submit" class="post-button">Post</button>

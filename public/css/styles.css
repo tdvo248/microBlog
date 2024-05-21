@@ -140,3 +140,36 @@ button:hover {
 #toggle-link a:hover {
     text-decoration: underline;
 }
+
+.input-container {
+    position: relative;
+    margin-bottom: 20px;
+    padding: 10px;
+}
+
+input[type="text"], textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; 
+    resize: none;
+}
+
+label {
+    position: absolute;
+    left: 12px;
+    top: 10px;
+    color: #999;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+input:focus + label, textarea:focus + label,
+input:not(:placeholder-shown) + label,
+textarea:not(:placeholder-shown) + label {
+    top: -20px;
+    font-size: 0.75em;
+    color: #666;
+}
+
