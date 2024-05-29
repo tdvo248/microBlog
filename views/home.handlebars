@@ -11,11 +11,13 @@
             <form action="/posts" method="POST">
                 <!-- title input field name = "title" -->
                 <div class="form-group">
-                    <input type="text" id="title" name="title" placeholder="Title" oninput="updateLabel('title-label', this.value)" required>
+                    <label for="title" id="title-label">Title</label>
+                    <input type="text" id="title" name="title" placeholder="Enter your title" required>
                 </div>
                 <!-- text area input field name = "content" -->
                 <div class="form-group">
-                    <textarea id="content" name="content" placeholder="Content" oninput="updateLabel('content-label',this.value)" required></textarea>
+                    <label for="content" id="content-label">Content</label>
+                    <textarea id="content" name="content" placeholder="Enter your content" required></textarea>
                 </div>
                 
                 <div class="form-actions">

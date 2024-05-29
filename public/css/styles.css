@@ -10,11 +10,37 @@ body {
 }
 
 header {
-    background: rgb(0, 157, 255);
-    color: #fff;
+    background: #0057b7;
+    color: #ffffff;
     padding: 10px 0;
     display: flex;
     align-items: center;
+}
+
+h1, h2, p {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: #0057b7;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 2rem;
+    color: #ff6600;
+}
+
+p {
+    font-size: 1.2rem;
+    color: #333;
+    line-height: 1.6;
+}
+
+::placeholder {
+    color: #aaa;
+    font-style: italic;
 }
 
 .container {
@@ -27,12 +53,60 @@ header {
 
 .post-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     padding: 20px;
+    flex-wrap: wrap;
+}
+
+.posts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.post-item {
+    margin: 20px;
+    transition: box-shadow 0.3s ease;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.post-item {
+    flex: 1 1 calc(25% - 40px);
+    max-width: 200px;
+    background: #e6f7ff;
+    border: 1px solid #66b2ff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.post-item h3 {
+    color: #0066cc;
+    margin: 0 0 10px 0;
+}
+
+.post-item p {
+    color: #333;
+    font-size: 1rem;
+    margin: 0 0 10px 0;
+}
+
+.post-item small {
+    color: #999;
+}
+
+.post-item:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
 .right-column, .left-column {
     width: 48%;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .logo {
@@ -56,18 +130,24 @@ nav ul {
     margin: 0;
     padding: 0;
     display: flex;
+    align-items: center;
 }
 
 nav ul li {
-    margin-left: 10px;
+    margin: 0 20px;
 }
 
 nav ul li a {
     text-decoration: none;
     color: #fff;
-    font-size: 1.5rem;
-    display: flex;
-    align-items: center;
+    font-size: 1.2rem;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: #ff6600;
 }
 
 .user-info {
@@ -75,10 +155,29 @@ nav ul li a {
     align-items: center;
 }
 
+.user-posts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    max-height: 600px;
+    width: 1810px;
+}
+
+.user-posts ul {
+    list-style: none;
+    padding: 0;
+}
+
 .header-avatar {
     border-radius: 50%;
-    height: 40px;
-    margin-left: 10px;
+    height: 20px;
+    width: 50px;
 }
 
 main.content {
@@ -87,8 +186,8 @@ main.content {
 }
 
 footer {
-    background: #333;
-    color: #fff;
+    background: #333333;
+    color: #ffffff;
     text-align: center;
     padding: 15px 0;
     width: 100%;
@@ -102,45 +201,126 @@ footer p {
 .login-register {
     display: flex;
     justify-content: center;
+    align-items: center;
     padding: 20px;
 }
 
 .form-area {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 300px;
+    background-color: #ffffff;
+    padding: 25px 20px;
+    border-radius: 10px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    width: 350px;
     text-align: center;
 }
 
 .form-group {
     margin-bottom: 15px;
+    position: relative;
+    text-align: left;
+    width: 100%;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 5px;
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background: #fff;
+    padding: 0 5px;
+    color: #666;
     font-weight: bold;
+    font-size: 1rem;
+    transition: color 0.2s ease-in-out;
+    transform: translateY(20px);
+    opacity: 0.7;
 }
 
-.form-group input {
+.form-group input:focus + label {
+    transform: translateY(0px);
+    font-size: 1rem;
+    opacity: 1;
+}
+
+.form-group input, .form-group textarea {
+    border: 2px solid #ccc;
+    transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.form-group input:focus, .form-group textarea:focus {
+    border-color: #ff6600;
+    box-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
+}
+
+button, .emoji-button, .pagination button {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+
+button:hover, .emoji-button:hover, .pagination button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.form-group input,
+.form-group textarea {
     width: 100%;
-    padding: 8px;
     box-sizing: border-box;
+    border-radius: 4px;
+    margin-top: 8px;
+    background-color: #ffffff;
+    border: 2px solid #ccc;
+    padding: 12px 20px;
+    font-size: 1.2rem;
+    transition: border-color 0.3s ease-in-out;
 }
 
-button {
-    background: rgb(0, 157, 255);
+.form-group input:focus {
+    border-color: #ff6600;
+    outline: none;
+}
+
+.form-group textarea {
+    height: 200px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+button, .emoji-button, .pagination button {
+    background: #ff6600;
     color: #fff;
     border: none;
     padding: 10px 20px;
     cursor: pointer;
     border-radius: 5px;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+}
+
+button {
+    background-color: #ff6600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 button:hover {
-    background: red;
+    background-color: #cc5200;
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+
+button:hover, .emoji-button:hover, .pagination button:hover {
+    background: #cc5200;
+    transform: scale(1.05);
 }
 
 #toggle-link {
@@ -148,51 +328,150 @@ button:hover {
 }
 
 #toggle-link a {
-    color: #007BFF;
-    text-decoration: none;
+    color: #0057b7;
+    font-weight: bold;
+    transition: color 0.2s;
 }
 
 #toggle-link a:hover {
+    color: #ff6600;
     text-decoration: underline;
 }
 
-.input-container {
-    position: relative;
-    margin-bottom: 20px;
+.error-message {
+    color: #ff3333;
+    background-color: #fff3f3;
     padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
 }
 
-input[type="text"], textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box; 
-    resize: none;
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
 }
 
-label {
-    position: absolute;
-    left: 12px;
-    top: 10px;
-    color: #999;
-    pointer-events: none;
-    transition: all 0.3s ease;
+.profile-avatar {
+    margin-bottom: 15px;
+    padding-left: 10px;
 }
 
-input:focus + label, textarea:focus + label,
-input:not(:placeholder-shown) + label,
-textarea:not(:placeholder-shown) + label {
-    top: -20px;
-    font-size: 0.75em;
+.profile-info h2 {
+    color: #0066cc;
+    font-size: 2rem;
+    margin: 0;
+    text-align: center;
+}
+
+.profile-info p {
     color: #666;
+    font-size: 1rem;
+    margin: 5px 0 0 0;
 }
 
-.post, .user-posts {
-    border: 1px solid black;
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.post {
+    background: #fff;
+    border: 1px solid #0066cc;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px auto;
+    width: 80%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.post-avatar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.post-content h2 {
+    margin: 0 0 10px;
+    color: #0066cc;
+    font-size: 1.5rem;
+    max-width: 80%;
+}
+
+.post-content p {
+    margin: 0 0 15px;
+    color: #333;
+    font-size: 1rem;
+}
+
+.post-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.like-button, .delete-button {
+    background: none;
+    border: none;
+    color: #ff6600;
+    cursor: pointer;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.like-button:hover, .delete-button:hover {
+    color: #ffffff;
+    transform: scale(1.2);
+}
+
+.like-button.liked {
+    color: rgb(255, 0, 0);
+}
+
+.header-avatar {
+    border-radius: 50%;
+    height: 50px;
+    margin-right: 10px;
+}
+
+.emoji-panel {
+    background: #fff;
+    border: 1px solid #ccc;
     border-radius: 10px;
     padding: 10px;
-    margin: 20px;
+    margin-top: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.emoji {
+    font-size: 1.5rem;
+    margin: 5px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.emoji:hover {
+    transform: scale(1.3);
+}
+
+.emoji-panel {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.emoji {
+    font-size: 2rem;
+    padding: 5px;
+    display: inline-block;
+}
+
+.emoji:hover {
+    background-color: #f4f4f4;
+    border-radius: 50%;
 }
 
 .pagination {
@@ -202,7 +481,7 @@ textarea:not(:placeholder-shown) + label {
 }
 
 .pagination button {
-    background: rgb(0, 157, 255);
+    background: #ff6600;
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -211,31 +490,27 @@ textarea:not(:placeholder-shown) + label {
 }
 
 .pagination button:hover {
-    background: rgb(0, 157, 255);
+    background: #cc5200;
 }
 
+@media (max-width: 768px) {
+    .right-column, .left-column {
+        width: 100%;
+        padding: 10px;
+    }
 
-.emoji-button {
-    padding: 7px 20px;
+    .form-area {
+        width: auto;
+        padding: 20px;
+    }
+
+    h1, h2 {
+        text-align: center;
+    }
 }
 
-
-.like-button {
-    border: none;
-    padding: 7px 15px;
-    border-radius: 5px;
-    cursor: pointer;
+@media (max-width: 768px) {
+    .post-item {
+        flex: 1 0 100%;
+    }
 }
-
-.delete-button {
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-header nav ul {
-    display: flex;
-    align-items: center;
-}
-

@@ -12,19 +12,18 @@
     </section>
 </div>
 
-<h2>Your {{{postNeoType}}}s</h2>
+<h2>Your {{postNeoType}}s</h2>
 <section class="user-posts">
-    
     {{#if user.posts.length}}
-        <ul>
+        <div class="posts-container"> <!-- Added a container div -->
             {{#each user.posts}}
-                <li>
+                <div class="post-item">
                     <h3>{{this.title}}</h3>
                     <p>{{this.content}}</p>
                     <p><small>Posted on {{this.timestamp}}</small></p>
-                </li>
+                </div>
             {{/each}}
-        </ul>
+        </div>
     {{else}}
         <p>You have not posted yet.</p>
     {{/if}}

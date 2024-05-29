@@ -378,7 +378,13 @@ async function generateAvatar(letter, req, res, width = 100, height = 100) {
     const canvas = createCanvas(width, height);
     const context = canvas.getContext('2d');
 
-    const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A6'];
+    const colors = [
+        '#FF5733', '#33FF57', '#3357FF', '#FF33A6',
+        '#F1C40F', '#1ABC9C', '#8E44AD', '#E74C3C',
+        '#2ECC71', '#3498DB', '#9B59B6', '#E67E22',
+        '#F39C12', '#D35400', '#2980B9', '#C0392B',
+        '#27AE60', '#16A085', '#34495E', '#7F8C8D'
+    ];
     const bgColor = colors[letter.charCodeAt(0) % colors.length];
 
     // Draw background

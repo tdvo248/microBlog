@@ -44,6 +44,7 @@
             if (data.success) {
                 event.target.textContent = data.liked ? `♥ ${data.likes}` : `♡ ${data.likes}`;
                 event.target.setAttribute('data-liked', data.liked);
+                event.target.classList.toggle('liked', data.liked);
             }
         })
         .catch(error => {

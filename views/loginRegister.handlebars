@@ -6,21 +6,22 @@
         <h2 id="form-title">Login</h2>
         <!-- errors will appear here -->
         {{#if loginError}}
-            <p style="color: red;">{{loginError}}</p>
+            <p class="error-message">{{loginError}}</p>
         {{/if}}
         {{#if regError}}
-            <p style="color: red;">{{regError}}</p>
+            <p class="error-message">{{regError}}</p>
         {{/if}}
         <form id="login-form" action="/login" method="POST" style="display: block;">
             <div class="form-group">
                 <input type="text" id="login-username" name="username" required>
+                <label for="login-username">Username:</label>
             </div>
             <button type="submit">Login</button>
         </form>
         <form id="register-form" action="/register" method="POST" style="display: none;">
             <div class="form-group">
-                <label for="register-username">Username:</label>
                 <input type="text" id="register-username" name="username" required>
+                <label for="register-username">Username:</label>
             </div>
             <button type="submit">Register</button>
         </form>
