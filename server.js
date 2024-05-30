@@ -100,10 +100,21 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 // template
 //
 app.get('/', (req, res) => {
-    const posts = getPosts();
+    const sort = req.query.sort || 'latest';  
+    let posts = getPosts();
+
+    if (sort === 'likes') {
+        posts.sort((a, b) => b.likes - a.likes);
+    } else if (sort === 'oldest') {
+        posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    } else { 
+        posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+
     const user = getCurrentUser(req) || {};
-    res.render('home', { posts, user });
+    res.render('home', { posts, user, sort });
 });
+
 
 app.get('/api/emojis', async (req, res) => {
     try {
@@ -189,16 +200,17 @@ app.post('/like/:id', (req, res) => {
     res.json({ success: true, likes: post.likes, liked: liked });
 });
 
-app.get('/profile', isAuthenticated, (req, res) => {
-    // TODO: Render profile page
-    const user = getCurrentUser(req);
-    if (user) {
-        const userPosts = getPostsByUser(user.username);
-        res.render('profile', { user: { ...user, posts: userPosts } });
-    } else {
-        res.redirect('/login');
+app.get('/profile', (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/login');
     }
+    const sort = req.query.sort || 'latest'; 
+    const user = getCurrentUser(req);
+    user.posts = getPostsByUser(user.username, sort);
+
+    res.render('profile', { user, sort, postNeoType: 'Post' });
 });
+
 app.get('/avatar/:username', (req, res) => {
     // TODO: Serve the avatar image for the user
     const user = findUserByUsername(req.params.username);
@@ -347,9 +359,21 @@ function getPosts() {
 }
 
 // Function to get posts by a specific user
-function getPostsByUser(username) {
-    return posts.filter(post => post.username === username);
+function getPostsByUser(username, sort = 'latest') {
+    let userPosts = posts.filter(post => post.username === username);
+    
+    // Sort posts based on the sort parameter
+    if (sort === 'likes') {
+        userPosts.sort((a, b) => b.likes - a.likes);
+    } else if (sort === 'oldest') {
+        userPosts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    } else {  // Default to 'latest'
+        userPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+
+    return userPosts;
 }
+
 
 // Function to add a new post
 function addPost(title, content, user) {

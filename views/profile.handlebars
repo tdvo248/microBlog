@@ -15,6 +15,14 @@
 <h2>Your {{postNeoType}}s</h2>
 <section class="user-posts">
     {{#if user.posts.length}}
+        <form id="sort-form" method="GET" action="/profile">
+            <label for="sort">Sort by:</label>
+            <select name="sort" id="sort" onchange="document.getElementById('sort-form').submit();">
+                <option value="latest" {{#ifCond sort 'latest'}}selected{{/ifCond}}>Latest</option>
+                <option value="likes" {{#ifCond sort 'likes'}}selected{{/ifCond}}>Likes</option>
+                <option value="oldest" {{#ifCond sort 'oldest'}}selected{{/ifCond}}>Oldest</option>
+            </select>
+        </form>
         <div class="posts-container"> <!-- Added a container div -->
             {{#each user.posts}}
                 <div class="post-item">

@@ -1,7 +1,6 @@
 {{! Use the main layout }}
 {{!< main }}
 
-{{! Main content container }}
 <section class="post-container">
     {{#if loggedIn}}
     <div class="left-column">
@@ -41,6 +40,14 @@
     <div class="right-column">
         <h1>Recent Posts</h1>
         {{#if posts.length}}
+        <form id="sort-form" method="GET" action="/">
+            <label for="sort">Sort by:</label>
+            <select name="sort" id="sort" onchange="document.getElementById('sort-form').submit();">
+                <option value="latest" {{#ifCond sort 'latest'}}selected{{/ifCond}}>Latest</option>
+                <option value="likes" {{#ifCond sort 'likes'}}selected{{/ifCond}}>Likes</option>
+                <option value="oldest" {{#ifCond sort 'oldest'}}selected{{/ifCond}}>Oldest</option>
+            </select>
+        </form>
         <ul>
             {{#each posts}}
                 {{> post this user=../user}}            
