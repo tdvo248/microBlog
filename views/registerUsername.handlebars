@@ -8,14 +8,21 @@
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <form action="/registerUsername" method="POST">
-        <label for="username">Enter Username</label>
-        <input type="text" id="username" name="username" required>
-        <button type="submit">Submit</button>
-    </form>
-
-    {{#if error}}
-        <p style="color: red;">{{error}}</p>
-    {{/if}}
+    <div class="screen-center">
+        <div class="centered-form">
+            <form action="/registerUsername" method="POST" class="login-form">
+                <div class="form-group">
+                    <input type="text" id="username" name="username" required>
+                    <label for="username">Enter Username</label>
+                </div>
+                <button type="submit">Submit</button>
+            </form>
+            {{#if error}}
+                <p class="error-message">{{error}}</p>
+            {{/if}}
+        </div>
+    </div>
 </body>
+
+
 </html>

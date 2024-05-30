@@ -186,8 +186,7 @@ main.content {
 }
 
 footer {
-    background: #333333;
-    color: #ffffff;
+    background: #5a5a5a;
     text-align: center;
     padding: 15px 0;
     width: 100%;
@@ -196,6 +195,7 @@ footer {
 
 footer p {
     margin: 0;
+    color: #fbfbfb;
 }
 
 .login-register {
@@ -534,4 +534,62 @@ button:hover, .emoji-button:hover, .pagination button:hover {
     .post-item {
         flex: 1 0 100%;
     }
+}
+
+.screen-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: inherit;
+}
+
+.centered-form {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    width: 300px;
+}
+
+.centered-form .form-group {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.centered-form .form-group input {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 4px;
+    border: 2px solid #ccc;
+    font-size: 1.2rem;
+}
+
+.centered-form .form-group label {
+    position: absolute;
+    left: 20px;
+    top: 0;
+    transition: all 0.3s;
+    opacity: 0.7;
+}
+
+.centered-form .form-group input:focus + label,
+.centered-form .form-group input:not(:placeholder-shown) + label {
+    top: -20px;
+    opacity: 1;
+    color: #ff6600;
+}
+
+.centered-form button {
+    width: 100%;
+    background-color: #ff6600;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.centered-form button:hover {
+    background-color: blue;
 }
