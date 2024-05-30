@@ -2,6 +2,8 @@ const express = require('express');
 const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const fetch = require('node-fetch');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { createCanvas, loadImage } = require('canvas');
 const sqlite = require('sqlite');
 const sqlite3 = require('sqlite3');
@@ -18,6 +20,11 @@ const EMOJI_API_KEY = process.env.EMOJI_API_KEY;
 const dbFileName = process.env.DATABASE_NAME;
 
 let db;
+
+// Use environment variables for client ID and secret
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+
 
 async function initializeDB() {
     db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
@@ -40,6 +47,23 @@ async function initializeDB() {
         );
     `);
 }
+
+// Configure passport
+passport.use(new GoogleStrategy({
+    clientID: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    callbackURL: `http://localhost:${PORT}/auth/google/callback`
+}, (token, tokenSecret, profile, done) => {
+    return done(null, profile);
+}));
+
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
