@@ -593,3 +593,60 @@ button:hover, .emoji-button:hover, .pagination button:hover {
 .centered-form button:hover {
     background-color: blue;
 }
+
+.center-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 100%;
+}
+
+.center-message p {
+    font-size: 100px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+}
+
+/* Enhanced sorting dropdown */
+#sort {
+    background: linear-gradient(45deg, #ff6600, #ffcc00);
+    color: #1100ff;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border-radius: 5px;
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+#sort:hover {
+    background: linear-gradient(45deg, #cc5200, #ff9900);
+    transform: scale(1.05);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+
+#sort-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#sort-form label {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+#sort-form select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"%3E%3Cpath fill="%23FFF" d="M5 6l5-6H0z"/%3E%3C/svg%3E');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px;
+}
