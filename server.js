@@ -3,6 +3,8 @@ const expressHandlebars = require('express-handlebars');
 const session = require('express-session');
 const fetch = require('node-fetch');
 const { createCanvas, loadImage } = require('canvas');
+const sqlite = require('sqlite');
+const sqlite3 = require('sqlite3');
 require('dotenv').config();
 
 
@@ -12,7 +14,32 @@ require('dotenv').config();
 
 const app = express();
 const PORT = 3000;
-const EMOJI_API_KEY = process.env.EMOJI_API_KEY;;
+const EMOJI_API_KEY = process.env.EMOJI_API_KEY;
+const dbFileName = 'test.db';
+
+let db;
+
+async function initializeDB() {
+    db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            hashedGoogleId TEXT NOT NULL UNIQUE,
+            avatar_url TEXT,
+            memberSince DATETIME NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            username TEXT NOT NULL,
+            timestamp DATETIME NOT NULL,
+            likes INTEGER NOT NULL
+        );
+    `);
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,19 +126,19 @@ app.use(express.json());                            // Parse JSON bodies (as sen
 // We pass the posts and user variables into the home
 // template
 //
-app.get('/', (req, res) => {
-    const sort = req.query.sort || 'latest';  
-    let posts = getPosts();
+app.get('/', async (req, res) => {
+    const sort = req.query.sort || 'latest';
+    let posts = await getPosts();
 
     if (sort === 'likes') {
         posts.sort((a, b) => b.likes - a.likes);
     } else if (sort === 'oldest') {
         posts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    } else { 
+    } else {
         posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }
 
-    const user = getCurrentUser(req) || {};
+    const user = await getCurrentUser(req) || {};
     res.render('home', { posts, user, sort });
 });
 
@@ -151,26 +178,26 @@ app.get('/error', (req, res) => {
 // app.get('/post/:id', (req, res) => {
 //     // TODO: Render post detail page
 // });
-app.post('/posts', (req, res) => {
-    // TODO: Add a new post and redirect to home
+app.post('/posts', async (req, res) => {
     const { title, content } = req.body;
-    const user = getCurrentUser(req);
+    const user = await getCurrentUser(req);
     if (user) {
-        addPost(title, content, user);
+        await addPost(title, content, user);
         res.redirect('/');
     } else {
         res.redirect('/login');
     }
 });
-app.post('/like/:id', (req, res) => {
+
+app.post('/like/:id', async (req, res) => {
     const postId = parseInt(req.params.id);
-    const user = getCurrentUser(req);
+    const user = await getCurrentUser(req);
 
     if (!user) {
         return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const post = posts.find(post => post.id === postId);
+    const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
 
     if (!post) {
         return res.status(404).json({ success: false, message: 'Post not found' });
@@ -188,71 +215,63 @@ app.post('/like/:id', (req, res) => {
         }
         if (!user.likedPosts[postId]) {
             user.likedPosts[postId] = true;
-            post.likes += 1;
+            await db.run('UPDATE posts SET likes = likes + 1 WHERE id = ?', [postId]);
         }
     } else {
         if (user.likedPosts && user.likedPosts[postId]) {
             delete user.likedPosts[postId];
-            post.likes -= 1;
+            await db.run('UPDATE posts SET likes = likes - 1 WHERE id = ?', [postId]);
         }
     }
 
-    res.json({ success: true, likes: post.likes, liked: liked });
+    const updatedPost = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
+    res.json({ success: true, likes: updatedPost.likes, liked: liked });
 });
 
-app.get('/profile', isAuthenticated, (req, res) => {
-    // TODO: Render profile page
-    const user = getCurrentUser(req);
+app.get('/profile', isAuthenticated, async (req, res) => {
+    const user = await getCurrentUser(req);
     if (user) {
         const sort = req.query.sort || 'latest';
-        user.posts = getPostsByUser(user.username, sort);
+        user.posts = await getPostsByUser(user.username, sort);
         res.render('profile', { user, sort, postNeoType: 'Post' });
     } else {
         res.redirect('/login');
     }
 });
-app.get('/avatar/:username', (req, res) => {
-    // TODO: Serve the avatar image for the user
-    const user = findUserByUsername(req.params.username);
+
+app.get('/avatar/:username', async (req, res) => {
+    const user = await findUserByUsername(req.params.username);
     if (!user) {
         res.status(404).send('Avatar not found');
-        res.redirect('/');
+        return;
     }
-
-    console.log(req.params);
-
     handleAvatar(req, res);
-
-
 });
-app.post('/register', (req, res) => {
-    // TODO: Register a new user
-    const { username } = req.body;
-    if (findUserByUsername(username)) {
+
+app.post('/register', async (req, res) => {
+    //Remove the hashedGoogleID = 0 when implementing google oauth
+    const { username, hashedGoogleId=0, avatar_url } = req.body;
+    if (await findUserByUsername(username)) {
         return res.redirect('/register?error=Username already taken');
     }
-    // const avatarFilename = handleAvatar(username.charAt(0), users.length + 1);
-    addUser(username);
+    await addUser(username, hashedGoogleId, avatar_url);
     req.session.userId = username;
     req.session.loggedIn = true;
-    // console.log(`Register - ${req.session.userId}`);
     res.redirect('/');
 });
-app.post('/login', (req, res) => {
-    // TODO: Login a user
+
+app.post('/login', async (req, res) => {
     const { username } = req.body;
-    const user = findUserByUsername(username);
+    const user = await findUserByUsername(username);
     if (!user) {
         return res.redirect('/login?error=Username not recognized');
     }
     req.session.userId = username;
     req.session.loggedIn = true;
-    // console.log(`Login - ${req.session.userId}`);
-    
     res.redirect('/');
 });
+
 app.get('/logout', (req, res) => {
-    // TODO: Logout the user
     req.session.destroy(err => {
         if (err) {
             return res.redirect('/error');
@@ -260,28 +279,26 @@ app.get('/logout', (req, res) => {
         res.redirect('/');
     });
 });
-app.post('/delete/:id', isAuthenticated, (req, res) => {
+
+app.post('/delete/:id', isAuthenticated, async (req, res) => {
     const postId = parseInt(req.params.id);
-    const user = getCurrentUser(req);
+    const user = await getCurrentUser(req);
 
     if (!user) {
         return res.status(401).json({ success: false, message: 'Not authenticated' });
     }
 
-    const postIndex = posts.findIndex(post => post.id === postId);
+    const post = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
 
-    if (postIndex === -1) {
+    if (!post) {
         return res.status(404).json({ success: false, message: 'Post not found' });
     }
-
-    const post = posts[postIndex];
 
     if (post.username !== user.username) {
         return res.status(403).json({ success: false, message: 'Cannot delete posts that are not yours' });
     }
 
-    posts.splice(postIndex, 1);
-
+    await db.run('DELETE FROM posts WHERE id = ?', [postId]);
     res.json({ success: true, message: 'Post deleted' });
 });
 
@@ -290,40 +307,29 @@ app.post('/delete/:id', isAuthenticated, (req, res) => {
 // Server Activation
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+initializeDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
 });
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Support Functions and Variables
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// Example data for posts and users
-let posts = [];
-let users = [];
-
 // Function to find a user by username
-function findUserByUsername(username) {
-    // TODO: Return user object if found, otherwise return undefined
-    return users.find(user => user.username === username);
-}
-
-// Function to find a user by user ID
-function findUserById(userId) {
-    // TODO: Return user object if found, otherwise return undefined
-    return users.find(user => user.id === userId);
+async function findUserByUsername(username) {
+    return await db.get('SELECT * FROM users WHERE username = ?', [username]);
 }
 
 // Function to add a new user
-function addUser(username) {
-    // TODO: Create a new user object and add to users array
-    const newUser = {
-        id: users.length + 1,
+async function addUser(username, hashedGoogleId=0, avatar_url) {
+    await db.run('INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)', [
         username,
-        memberSince: new Date().toISOString(),
-        likedPosts: {}  // Initialize likedPosts as an empty object
-    };
-    users.push(newUser);
+        ++hashedGoogleId,
+        avatar_url,
+        new Date().toISOString()
+    ]);
 }
 
 
@@ -336,38 +342,33 @@ function isAuthenticated(req, res, next) {
     }
 }
 
-// Function to handle avatar generation and serving
-function handleAvatar(req, res) {
-    // TODO: Generate and serve the user's avatar image
-    const letter = req.params.username.charAt(0).toUpperCase();
-    generateAvatar(letter, req, res);
-}
-
 // Function to get the current user from session
-function getCurrentUser(req) {
-    const user = findUserByUsername(req.session.userId);
+async function getCurrentUser(req) {
+    if (!req.session.userId) return null;
+    const user = await findUserByUsername(req.session.userId);
     if (user && !user.likedPosts) {
         user.likedPosts = {}; // Ensure likedPosts is initialized
+    } else {
+        user.likedPosts = JSON.parse(user.likedPosts);
     }
     return user;
 }
 
 
 // Function to get all posts, sorted by latest first
-function getPosts() {
-    return posts.slice().reverse();
+async function getPosts() {
+    return await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
 }
 
 // Function to get posts by a specific user
-function getPostsByUser(username, sort = 'latest') {
-    let userPosts = posts.filter(post => post.username === username);
-    
-    // Sort posts based on the sort parameter
+async function getPostsByUser(username, sort = 'latest') {
+    let userPosts = await db.all('SELECT * FROM posts WHERE username = ?', [username]);
+
     if (sort === 'likes') {
         userPosts.sort((a, b) => b.likes - a.likes);
     } else if (sort === 'oldest') {
         userPosts.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    } else {  // Default to 'latest'
+    } else {
         userPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }
 
@@ -376,29 +377,26 @@ function getPostsByUser(username, sort = 'latest') {
 
 
 // Function to add a new post
-function addPost(title, content, user) {
-    // TODO: Create a new post object and add to posts array
-    const newPost = {
-        id: posts.length + 1,
+async function addPost(title, content, user) {
+    await db.run('INSERT INTO posts (title, content, username, timestamp, likes) VALUES (?, ?, ?, ?, ?)', [
         title,
         content,
-        username: user.username,
-        timestamp: new Date().toISOString(),
-        likes: 0,
-    };
-    posts.push(newPost);
+        user.username,
+        new Date().toISOString(),
+        0
+    ]);
 }
+
+
+// Function to handle avatar generation and serving
+function handleAvatar(req, res) {
+    const letter = req.params.username.charAt(0).toUpperCase();
+    generateAvatar(letter, req, res);
+}
+
 
 // Function to generate an image avatar
 async function generateAvatar(letter, req, res, width = 100, height = 100) {
-    // TODO: Generate an avatar image with a letter
-    // Steps:
-    // 1. Choose a color scheme based on the letter
-    // 2. Create a canvas with the specified width and height
-    // 3. Draw the background color
-    // 4. Draw the letter in the center
-    // 5. Return the avatar as a PNG buffer
-
     const canvas = createCanvas(width, height);
     const context = canvas.getContext('2d');
 
@@ -411,19 +409,15 @@ async function generateAvatar(letter, req, res, width = 100, height = 100) {
     ];
     const bgColor = colors[letter.charCodeAt(0) % colors.length];
 
-    // Draw background
     context.fillStyle = bgColor;
     context.fillRect(0, 0, width, height);
 
-    // Draw letter
     context.fillStyle = '#000';
     context.font = 'bold 48px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(letter, width / 2, height / 2);
 
-    // Send image buffer
     res.setHeader('Content-Type', 'image/png');
     res.send(canvas.toBuffer('image/png'));
-
 }

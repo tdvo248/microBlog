@@ -83,7 +83,7 @@ function toggleEmojiPanel() {
 
 function displayEmojis(emojis, limit = 10, page = 1) {
     const container = document.getElementById('emoji-grid');
-    container.innerHTML = '';  // Clear previous results
+    container.innerHTML = '';  
 
     const start = (page - 1) * limit;
     const end = page * limit;
