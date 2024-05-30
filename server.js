@@ -15,7 +15,7 @@ require('dotenv').config();
 const app = express();
 const PORT = 3000;
 const EMOJI_API_KEY = process.env.EMOJI_API_KEY;
-const dbFileName = 'test.db';
+const dbFileName = process.env.DATABASE_NAME;
 
 let db;
 
@@ -323,7 +323,7 @@ async function findUserByUsername(username) {
 }
 
 // Function to add a new user
-async function addUser(username, hashedGoogleId=0, avatar_url) {
+async function addUser(username, hashedGoogleId, avatar_url) {
     await db.run('INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)', [
         username,
         ++hashedGoogleId,

@@ -3,8 +3,10 @@
 const sqlite = require('sqlite');
 const sqlite3 = require('sqlite3');
 
+require('dotenv').config();
+
 // Placeholder for the database file name
-const dbFileName = 'test.db';
+const dbFileName = process.env.DATABASE_NAME;
 
 async function initializeDB() {
     const db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
