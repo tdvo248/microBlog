@@ -11,43 +11,6 @@
         {{#if regError}}
             <p class="error-message">{{regError}}</p>
         {{/if}}
-        <form id="login-form" action="/login" method="POST" style="display: block;">
-            <div class="form-group">
-                <input type="text" id="login-username" name="username" required>
-                <label for="login-username">Username:</label>
-            </div>
-            <button type="submit">Login</button>
-        </form>
-        <form id="register-form" action="/register" method="POST" style="display: none;">
-            <div class="form-group">
-                <input type="text" id="register-username" name="username" required>
-                <label for="register-username">Username:</label>
-            </div>
-            <button type="submit">Register</button>
-        </form>
-        <p id="toggle-link">
-            Don't have an account? <a href="#" onclick="toggleForm('register')">Register here</a>
-        </p>
+        <a href="/auth/google" class="google-login-button">Login with Google</a>
     </section>
 </section>
-
-<script>
-    function toggleForm(formType) {
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const formTitle = document.getElementById('form-title');
-        const toggleLink = document.getElementById('toggle-link');
-
-        if (formType === 'register') {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
-            formTitle.textContent = 'Register';
-            toggleLink.innerHTML = 'Already have an account? <a href="#" onclick="toggleForm(\'login\')">Log in here</a>';
-        } else {
-            loginForm.style.display = 'block';
-            registerForm.style.display = 'none';
-            formTitle.textContent = 'Login';
-            toggleLink.innerHTML = 'Don\'t have an account? <a href="#" onclick="toggleForm(\'register\')">Register here</a>';
-        }
-    }
-</script>

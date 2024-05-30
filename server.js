@@ -4,16 +4,12 @@ const session = require('express-session');
 const fetch = require('node-fetch');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas } = require('canvas');
 const sqlite = require('sqlite');
 const sqlite3 = require('sqlite3');
 require('dotenv').config();
 
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Configuration and Setup
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 const app = express();
 const PORT = 3000;
 const EMOJI_API_KEY = process.env.EMOJI_API_KEY;
@@ -25,7 +21,6 @@ let db;
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
-
 async function initializeDB() {
     db = await sqlite.open({ filename: dbFileName, driver: sqlite3.Database });
     await db.exec(`
@@ -34,7 +29,8 @@ async function initializeDB() {
             username TEXT NOT NULL UNIQUE,
             hashedGoogleId TEXT NOT NULL UNIQUE,
             avatar_url TEXT,
-            memberSince DATETIME NOT NULL
+            memberSince DATETIME NOT NULL,
+            likedPosts TEXT DEFAULT '{}'
         );
 
         CREATE TABLE IF NOT EXISTS posts (
@@ -53,46 +49,30 @@ passport.use(new GoogleStrategy({
     clientID: CLIENT_ID,
     clientSecret: CLIENT_SECRET,
     callbackURL: `http://localhost:${PORT}/auth/google/callback`
-}, (token, tokenSecret, profile, done) => {
-    return done(null, profile);
+}, async (token, tokenSecret, profile, done) => {
+    let user = await db.get('SELECT * FROM users WHERE hashedGoogleId = ?', profile.id);
+    if (!user) {
+        // Insert the user with a temporary username (e.g., Google profile's display name)
+        const tempUsername = `temp_${profile.id}`; // Generate a unique temporary username
+        await db.run(
+            'INSERT INTO users (hashedGoogleId, username, memberSince) VALUES (?, ?, ?)',
+            [profile.id, tempUsername, new Date().toISOString()]
+        );
+        user = await db.get('SELECT * FROM users WHERE hashedGoogleId = ?', profile.id);
+    }
+    return done(null, user);
 }));
 
 passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    const user = await db.get('SELECT * FROM users WHERE id = ?', id);
     done(null, user);
 });
 
-passport.deserializeUser((obj, done) => {
-    done(null, obj);
-});
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Handlebars Helpers
-
-    Handlebars helpers are custom functions that can be used within the templates 
-    to perform specific tasks. They enhance the functionality of templates and 
-    help simplify data manipulation directly within the view files.
-
-    In this project, two helpers are provided:
-    
-    1. toLowerCase:
-       - Converts a given string to lowercase.
-       - Usage example: {{toLowerCase 'SAMPLE STRING'}} -> 'sample string'
-
-    2. ifCond:
-       - Compares two values for equality and returns a block of content based on 
-         the comparison result.
-       - Usage example: 
-            {{#ifCond value1 value2}}
-                <!-- Content if value1 equals value2 -->
-            {{else}}
-                <!-- Content if value1 does not equal value2 -->
-            {{/ifCond}}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-// Set up Handlebars view engine with custom helpers
-//
+// Handlebars Helpers
 app.engine(
     'handlebars',
     expressHandlebars.engine({
@@ -113,22 +93,16 @@ app.engine(
 app.set('view engine', 'handlebars');
 app.set('views', './views');
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Middleware
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 app.use(
     session({
-        secret: 'oneringtorulethemall',     // Secret key to sign the session ID cookie
-        resave: false,                      // Don't save session if unmodified
-        saveUninitialized: false,           // Don't create session until something stored
-        cookie: { secure: false },          // True if using https. Set to false for development without https
+        secret: 'oneringtorulethemall', // Secret key to sign the session ID cookie
+        resave: false, // Don't save session if unmodified
+        saveUninitialized: false, // Don't create session until something stored
+        cookie: { secure: false }, // True if using https. Set to false for development without https
     })
 );
 
-// Replace any of these variables below with constants for your application. These variables
-// should be used in your template files. 
-// 
 app.use((req, res, next) => {
     res.locals.appName = 'FishTalk';
     res.locals.copyrightYear = 2024;
@@ -138,18 +112,16 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static('public'));                  // Serve static files
-app.use(express.urlencoded({ extended: true }));    // Parse URL-encoded bodies (as sent by HTML forms)
-app.use(express.json());                            // Parse JSON bodies (as sent by API clients)
+app.use(passport.initialize());
+app.use(passport.session());
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+app.use(express.static('public')); // Serve static files
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies (as sent by HTML forms)
+app.use(express.json()); // Parse JSON bodies (as sent by API clients)
+
 // Routes
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // Home route: render home view with posts and user
-// We pass the posts and user variables into the home
-// template
-//
 app.get('/', async (req, res) => {
     const sort = req.query.sort || 'latest';
     let posts = await getPosts();
@@ -166,6 +138,20 @@ app.get('/', async (req, res) => {
     res.render('home', { posts, user, sort });
 });
 
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/loginRegister' }), async (req, res) => {
+    const user = req.user;
+    if (!user.username || user.username.startsWith('temp_')) {
+        req.session.userId = user.id;
+        res.redirect('/registerUsername');
+    } else {
+        req.session.userId = user.id;
+        req.session.username = user.username;
+        req.session.loggedIn = true;
+        res.redirect('/');
+    }
+});
 
 app.get('/api/emojis', async (req, res) => {
     try {
@@ -177,55 +163,45 @@ app.get('/api/emojis', async (req, res) => {
     }
 });
 
-//registerUsername path
-app.get('/registerUsername', (req, res)=>{
-    res.render('registerUsername',{
-        title: 'Register Username'
-    });
+// Register username path
+app.get('/registerUsername', isAuthenticated, (req, res) => {
+    res.render('registerUsername', { title: 'Register Username' });
 });
 
-app.post('/registerUsername', async(req, res)=>{
+app.post('/registerUsername', isAuthenticated, async (req, res) => {
     const username = req.body.username;
-    const userId =req.user.id;
-
-    const exitingUser = await db.get('SELECT * FROM users WHERE selectedUsername = ?', username);
-    if(exitstingUser){
-        res.session.error = "Username already exist";
-        return res.redirect('/registerUsername');
+    const userId = req.session.userId;
+    const existingUser = await db.get('SELECT * FROM users WHERE username = ?', username);
+    if (existingUser) {
+        res.render('registerUsername', { error: 'Username already exists', title: 'Register Username' });
+    } else {
+        const avatar_url = generateAvatar(username.charAt(0).toUpperCase());
+        await db.run('UPDATE users SET username = ?, avatar_url = ? WHERE id = ?', [username, avatar_url, userId]);
+        const user = await db.get('SELECT * FROM users WHERE id = ?', userId); // Retrieve the updated user info
+        req.session.userId = user.id; // Use user.id instead of username
+        req.session.username = user.username; // Ensure username is updated in the session
+        req.session.loggedIn = true;
+        res.redirect('/');
     }
-
-    await db.run('UPDATE users SET selectedUsername = ? WHERE id = ?', [username, userId]);
-
-    req.user.selectUsername = username;
-
-    res.redirect('/');
-})
-
+});
 
 // Register GET route is used for error response from registration
-//
 app.get('/register', (req, res) => {
     res.render('loginRegister', { regError: req.query.error });
 });
 
 // Login route GET route is used for error response from login
-//
 app.get('/login', (req, res) => {
-    res.render('loginRegister', { loginError: req.query.error });
+    res.render('loginRegister', { title: 'Login/Register' });
 });
 
 // Error route: render error page
-//
 app.get('/error', (req, res) => {
     res.render('error');
 });
 
 // Additional routes that you must implement
 
-
-// app.get('/post/:id', (req, res) => {
-//     // TODO: Render post detail page
-// });
 app.post('/posts', async (req, res) => {
     const { title, content } = req.body;
     const user = await getCurrentUser(req);
@@ -257,16 +233,18 @@ app.post('/like/:id', async (req, res) => {
 
     const liked = req.body.liked;
 
+    // Initialize likedPosts if not present
+    if (!user.likedPosts) {
+        user.likedPosts = {};
+    }
+
     if (liked) {
-        if (!user.likedPosts) {
-            user.likedPosts = {};
-        }
         if (!user.likedPosts[postId]) {
             user.likedPosts[postId] = true;
             await db.run('UPDATE posts SET likes = likes + 1 WHERE id = ?', [postId]);
         }
     } else {
-        if (user.likedPosts && user.likedPosts[postId]) {
+        if (user.likedPosts[postId]) {
             delete user.likedPosts[postId];
             await db.run('UPDATE posts SET likes = likes - 1 WHERE id = ?', [postId]);
         }
@@ -293,30 +271,7 @@ app.get('/avatar/:username', async (req, res) => {
         res.status(404).send('Avatar not found');
         return;
     }
-    handleAvatar(req, res);
-});
-
-app.post('/register', async (req, res) => {
-    //Remove the hashedGoogleID = 0 when implementing google oauth
-    const { username, hashedGoogleId=0, avatar_url } = req.body;
-    if (await findUserByUsername(username)) {
-        return res.redirect('/register?error=Username already taken');
-    }
-    await addUser(username, hashedGoogleId, avatar_url);
-    req.session.userId = username;
-    req.session.loggedIn = true;
-    res.redirect('/');
-});
-
-app.post('/login', async (req, res) => {
-    const { username } = req.body;
-    const user = await findUserByUsername(username);
-    if (!user) {
-        return res.redirect('/login?error=Username not recognized');
-    }
-    req.session.userId = username;
-    req.session.loggedIn = true;
-    res.redirect('/');
+    handleAvatar(req, res, user);
 });
 
 app.get('/logout', (req, res) => {
@@ -324,15 +279,21 @@ app.get('/logout', (req, res) => {
         if (err) {
             return next(err);
         }
-        res.redirect('/googleLogout');
+        req.session.destroy((err) => {
+            if (err) {
+                return next(err);
+            }
+            res.redirect('/googleLogout');
+        });
     });
 });
 
 app.get('/googleLogout', (req, res) => {
-    res.render('googleLogout');
+    const logoutUrl = 'https://accounts.google.com/Logout';
+    res.render('googleLogout', { logoutUrl });
 });
 
-app.get('/logoutCallback', (req, res)=>{
+app.get('/logoutCallback', (req, res) => {
     res.redirect('/');
 });
 
@@ -358,10 +319,7 @@ app.post('/delete/:id', isAuthenticated, async (req, res) => {
     res.json({ success: true, message: 'Post deleted' });
 });
 
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Server Activation
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 initializeDB().then(() => {
     app.listen(PORT, () => {
@@ -369,9 +327,7 @@ initializeDB().then(() => {
     });
 });
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Support Functions and Variables
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // Function to find a user by username
 async function findUserByUsername(username) {
@@ -380,14 +336,14 @@ async function findUserByUsername(username) {
 
 // Function to add a new user
 async function addUser(username, hashedGoogleId, avatar_url) {
-    await db.run('INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince) VALUES (?, ?, ?, ?)', [
+    await db.run('INSERT INTO users (username, hashedGoogleId, avatar_url, memberSince, likedPosts) VALUES (?, ?, ?, ?, ?)', [
         username,
-        ++hashedGoogleId,
+        hashedGoogleId,
         avatar_url,
-        new Date().toISOString()
+        new Date().toISOString(),
+        JSON.stringify({})
     ]);
 }
-
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
@@ -401,15 +357,12 @@ function isAuthenticated(req, res, next) {
 // Function to get the current user from session
 async function getCurrentUser(req) {
     if (!req.session.userId) return null;
-    const user = await findUserByUsername(req.session.userId);
-    if (user && !user.likedPosts) {
-        user.likedPosts = {}; // Ensure likedPosts is initialized
-    } else {
-        user.likedPosts = JSON.parse(user.likedPosts);
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [req.session.userId]); // Fetch user by ID
+    if (user) {
+        user.likedPosts = user.likedPosts ? JSON.parse(user.likedPosts) : {};
     }
     return user;
 }
-
 
 // Function to get all posts, sorted by latest first
 async function getPosts() {
@@ -431,7 +384,6 @@ async function getPostsByUser(username, sort = 'latest') {
     return userPosts;
 }
 
-
 // Function to add a new post
 async function addPost(title, content, user) {
     await db.run('INSERT INTO posts (title, content, username, timestamp, likes) VALUES (?, ?, ?, ?, ?)', [
@@ -443,17 +395,35 @@ async function addPost(title, content, user) {
     ]);
 }
 
-
 // Function to handle avatar generation and serving
-function handleAvatar(req, res) {
-    const letter = req.params.username.charAt(0).toUpperCase();
-    generateAvatar(letter, req, res);
+function handleAvatar(req, res, user) {
+    if (user.avatar_url) {
+        // If the avatar_url exists, serve the image directly
+        const avatarUrl = user.avatar_url;
+        const base64Data = avatarUrl.split(',')[1];
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imgBuffer.length
+        });
+        res.end(imgBuffer);
+    } else {
+        // If the avatar_url does not exist, generate and serve the default avatar
+        const letter = user.username.charAt(0).toUpperCase();
+        const avatarUrl = generateAvatar(letter);
+        const base64Data = avatarUrl.split(',')[1];
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+        res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': imgBuffer.length
+        });
+        res.end(imgBuffer);
+    }
 }
 
-
 // Function to generate an image avatar
-async function generateAvatar(letter, req, res, width = 100, height = 100) {
-    const canvas = createCanvas(width, height);
+function generateAvatar(letter) {
+    const canvas = createCanvas(100, 100);
     const context = canvas.getContext('2d');
 
     const colors = [
@@ -466,14 +436,13 @@ async function generateAvatar(letter, req, res, width = 100, height = 100) {
     const bgColor = colors[letter.charCodeAt(0) % colors.length];
 
     context.fillStyle = bgColor;
-    context.fillRect(0, 0, width, height);
+    context.fillRect(0, 0, 100, 100);
 
     context.fillStyle = '#000';
     context.font = 'bold 48px sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillText(letter, width / 2, height / 2);
+    context.fillText(letter, 50, 50);
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(canvas.toBuffer('image/png'));
+    return canvas.toDataURL(); // Return base64-encoded URL
 }
