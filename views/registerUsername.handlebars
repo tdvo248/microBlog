@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">    
+    <title>{{{title}}}</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <form action="/registerUsername" method="POST">
+    <label for="username">Enter Username</label>
+    <input type="text" id="username" name="username" required>
+    <button type="submit">Submit</button>
+    </form>
+
+    {{#if error}}
+        <p style="color: red;">{{error}}</p>
+    {{/if}}
+
+</body>
+</html>

@@ -177,6 +177,30 @@ app.get('/api/emojis', async (req, res) => {
     }
 });
 
+//registerUsername path
+app.get('/registerUsername', (req, res)=>{
+    res.render('registerUsername',{
+        title: 'Register Username'
+    });
+});
+
+app.post('/registerUsername', async(req, res)=>{
+    const username = req.body.username;
+    const userId =req.user.id;
+
+    const exitingUser = await db.get('SELECT * FROM users WHERE selectedUsername = ?', username);
+    if(exitstingUser){
+        res.session.error = "Username already exist";
+        return res.redirect('/registerUsername');
+    }
+
+    await db.run('UPDATE users SET selectedUsername = ? WHERE id = ?', [username, userId]);
+
+    req.user.selectUsername = username;
+
+    res.redirect('/');
+})
+
 
 // Register GET route is used for error response from registration
 //
@@ -296,12 +320,20 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
-    req.session.destroy(err => {
+    req.logout((err) => {
         if (err) {
-            return res.redirect('/error');
+            return next(err);
         }
-        res.redirect('/');
+        res.redirect('/googleLogout');
     });
+});
+
+app.get('/googleLogout', (req, res) => {
+    res.render('googleLogout');
+});
+
+app.get('/logoutCallback', (req, res)=>{
+    res.redirect('/');
 });
 
 app.post('/delete/:id', isAuthenticated, async (req, res) => {
