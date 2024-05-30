@@ -200,17 +200,17 @@ app.post('/like/:id', (req, res) => {
     res.json({ success: true, likes: post.likes, liked: liked });
 });
 
-app.get('/profile', (req, res) => {
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
-    const sort = req.query.sort || 'latest'; 
+app.get('/profile', isAuthenticated, (req, res) => {
+    // TODO: Render profile page
     const user = getCurrentUser(req);
-    user.posts = getPostsByUser(user.username, sort);
-
-    res.render('profile', { user, sort, postNeoType: 'Post' });
+    if (user) {
+        const sort = req.query.sort || 'latest';
+        user.posts = getPostsByUser(user.username, sort);
+        res.render('profile', { user, sort, postNeoType: 'Post' });
+    } else {
+        res.redirect('/login');
+    }
 });
-
 app.get('/avatar/:username', (req, res) => {
     // TODO: Serve the avatar image for the user
     const user = findUserByUsername(req.params.username);
