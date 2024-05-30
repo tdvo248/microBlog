@@ -52,7 +52,6 @@ passport.use(new GoogleStrategy({
 }, async (token, tokenSecret, profile, done) => {
     let user = await db.get('SELECT * FROM users WHERE hashedGoogleId = ?', profile.id);
     if (!user) {
-        // Insert the user with a temporary username (e.g., Google profile's display name)
         const tempUsername = `temp_${profile.id}`; // Generate a unique temporary username
         await db.run(
             'INSERT INTO users (hashedGoogleId, username, memberSince) VALUES (?, ?, ?)',
@@ -163,9 +162,63 @@ app.get('/api/emojis', async (req, res) => {
     }
 });
 
-// Register username path
 app.get('/registerUsername', isAuthenticated, (req, res) => {
     res.render('registerUsername', { title: 'Register Username' });
+});
+
+app.get('/register', (req, res) => {
+    res.render('loginRegister', { regError: req.query.error });
+});
+
+app.get('/login', (req, res) => {
+    res.render('loginRegister', { title: 'Login/Register' });
+});
+
+app.get('/error', (req, res) => {
+    res.render('error');
+});
+
+app.get('/profile', isAuthenticated, async (req, res) => {
+    const user = await getCurrentUser(req);
+    if (user) {
+        const sort = req.query.sort || 'latest';
+        user.posts = await getPostsByUser(user.username, sort);
+        res.render('profile', { user, sort, postNeoType: 'Post' });
+    } else {
+        res.redirect('/login');
+    }
+});
+
+app.get('/avatar/:username', async (req, res) => {
+    const user = await findUserByUsername(req.params.username);
+    if (!user) {
+        res.status(404).send('Avatar not found');
+        return;
+    }
+    handleAvatar(req, res, user);
+});
+
+app.get('/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) {
+            return next(err);
+        }
+        req.session.destroy((err) => {
+            if (err) {
+                return next(err);
+            }
+            res.redirect('/googleLogout');
+        });
+    });
+});
+
+app.get('/googleLogout', (req, res) => {
+    const logoutUrl = 'https://accounts.google.com/Logout';
+    res.render('googleLogout', { logoutUrl });
+});
+
+app.get('/logoutCallback', (req, res) => {
+    res.redirect('/');
 });
 
 app.post('/registerUsername', isAuthenticated, async (req, res) => {
@@ -184,23 +237,6 @@ app.post('/registerUsername', isAuthenticated, async (req, res) => {
         res.redirect('/');
     }
 });
-
-// Register GET route is used for error response from registration
-app.get('/register', (req, res) => {
-    res.render('loginRegister', { regError: req.query.error });
-});
-
-// Login route GET route is used for error response from login
-app.get('/login', (req, res) => {
-    res.render('loginRegister', { title: 'Login/Register' });
-});
-
-// Error route: render error page
-app.get('/error', (req, res) => {
-    res.render('error');
-});
-
-// Additional routes that you must implement
 
 app.post('/posts', async (req, res) => {
     const { title, content } = req.body;
@@ -252,49 +288,6 @@ app.post('/like/:id', async (req, res) => {
 
     const updatedPost = await db.get('SELECT * FROM posts WHERE id = ?', [postId]);
     res.json({ success: true, likes: updatedPost.likes, liked: liked });
-});
-
-app.get('/profile', isAuthenticated, async (req, res) => {
-    const user = await getCurrentUser(req);
-    if (user) {
-        const sort = req.query.sort || 'latest';
-        user.posts = await getPostsByUser(user.username, sort);
-        res.render('profile', { user, sort, postNeoType: 'Post' });
-    } else {
-        res.redirect('/login');
-    }
-});
-
-app.get('/avatar/:username', async (req, res) => {
-    const user = await findUserByUsername(req.params.username);
-    if (!user) {
-        res.status(404).send('Avatar not found');
-        return;
-    }
-    handleAvatar(req, res, user);
-});
-
-app.get('/logout', (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return next(err);
-        }
-        req.session.destroy((err) => {
-            if (err) {
-                return next(err);
-            }
-            res.redirect('/googleLogout');
-        });
-    });
-});
-
-app.get('/googleLogout', (req, res) => {
-    const logoutUrl = 'https://accounts.google.com/Logout';
-    res.render('googleLogout', { logoutUrl });
-});
-
-app.get('/logoutCallback', (req, res) => {
-    res.redirect('/');
 });
 
 app.post('/delete/:id', isAuthenticated, async (req, res) => {

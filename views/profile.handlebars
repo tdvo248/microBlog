@@ -23,7 +23,7 @@
                 <option value="oldest" {{#ifCond sort 'oldest'}}selected{{/ifCond}}>Oldest</option>
             </select>
         </form>
-        <div class="posts-container"> <!-- Added a container div -->
+        <div class="posts-container"> 
             {{#each user.posts}}
                 <div class="post-item">
                     <h3>{{this.title}}</h3>
