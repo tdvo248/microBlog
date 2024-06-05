@@ -24,7 +24,21 @@
                 <button class="like-button" data-id="{{id}}" data-liked="false" onclick="handleLikeClick(event)">♡ {{likes}}</button>
             {{/if}}
             <span>by {{username}} on {{timestamp}}</span>
-        </div>        
+        </div>
+        <!-- Comment section starts here -->
+        <div class="comments-section">
+            {{#each comments}}
+                <div class="comment">
+                    <strong>{{this.username}}:</strong>
+                    <p>{{this.content}}</p>
+                </div>
+            {{/each}}
+            <form action="/posts/{{id}}/comments" method="POST">
+                <textarea name="content" placeholder="Add a comment" required></textarea>
+                <button type="submit">Add Comment</button>
+            </form>
+        </div>
+        <!-- Comment section ends here -->
     </div>
 </div>
 <script>

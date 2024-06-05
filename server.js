@@ -41,6 +41,16 @@ async function initializeDB() {
             timestamp DATETIME NOT NULL,
             likes INTEGER NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp DATETIME NOT NULL,
+            FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE
+        );
+
     `);
 }
 
@@ -312,6 +322,22 @@ app.post('/delete/:id', isAuthenticated, async (req, res) => {
     res.json({ success: true, message: 'Post deleted' });
 });
 
+// Post Comments 
+app.post('/posts/:id/comments', async (req, res) => {
+    const { content } = req.body;
+    const { id } = req.params;
+    const user = await getCurrentUser(req);
+    if (user) {
+        await db.run('INSERT INTO comments (post_id, username, content, timestamp) VALUES (?, ?, ?, ?)', [
+            id, user.username, content, new Date().toISOString()
+        ]);
+        res.redirect('/');
+    } else {
+        res.redirect('/login');
+    }
+});
+
+
 // Server Activation
 
 initializeDB().then(() => {
@@ -360,6 +386,20 @@ async function getCurrentUser(req) {
 // Function to get all posts, sorted by latest first
 async function getPosts() {
     return await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
+}
+
+// Modify getPosts or similar function to also fetch comments
+async function getPosts() {
+    const posts = await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
+    for (let post of posts) {
+        post.comments = await getCommentsByPostId(post.id);
+    }
+    return posts;
+}
+
+// Function to get comments 
+async function getCommentsByPostId(postId) {
+    return await db.all('SELECT * FROM comments WHERE post_id = ? ORDER BY timestamp DESC', [postId]);
 }
 
 // Function to get posts by a specific user
