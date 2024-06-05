@@ -651,10 +651,6 @@ button:hover, .emoji-button:hover, .pagination button:hover {
     background-size: 10px;
 }
 
-.comments-section {
-    margin-top: 10px;
-}
-
 .comment {
     background-color: #f0f0f0;
     padding: 5px;
