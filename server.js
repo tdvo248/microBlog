@@ -30,7 +30,8 @@ async function initializeDB() {
             hashedGoogleId TEXT NOT NULL UNIQUE,
             avatar_url TEXT,
             memberSince DATETIME NOT NULL,
-            likedPosts TEXT DEFAULT '{}'
+            likedPosts TEXT DEFAULT '{}',
+            followerCount INTEGER DEFAULT '0'
         );
 
         CREATE TABLE IF NOT EXISTS posts (
@@ -49,6 +50,13 @@ async function initializeDB() {
             content TEXT NOT NULL,
             timestamp DATETIME NOT NULL,
             FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS followers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            follower TEXT NOT NULL,
+            following TEXT NOT NULL,
+            UNIQUE(follower, following)
         );
 
     `);
@@ -90,11 +98,13 @@ app.engine(
                 return str.toLowerCase();
             },
             ifCond: function (v1, v2, options) {
-                if (v1 === v2) {
+                if (options.fn && v1 === v2) {
                     return options.fn(this);
+                } else if (options.fn) {
+                    return options.inverse(this);
                 }
-                return options.inverse(this);
-            },
+                return v1 === v2;  // Return boolean if not used as a block
+            },            
         },
     })
 );
@@ -133,7 +143,8 @@ app.use(express.json()); // Parse JSON bodies (as sent by API clients)
 // Home route: render home view with posts and user
 app.get('/', async (req, res) => {
     const sort = req.query.sort || 'latest';
-    let posts = await getPosts();
+    const user = await getCurrentUser(req) || {};
+    let posts = await getPosts(user);
 
     if (sort === 'likes') {
         posts.sort((a, b) => b.likes - a.likes);
@@ -143,7 +154,6 @@ app.get('/', async (req, res) => {
         posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     }
 
-    const user = await getCurrentUser(req) || {};
     res.render('home', { posts, user, sort });
 });
 
@@ -338,6 +348,51 @@ app.post('/posts/:id/comments', async (req, res) => {
 });
 
 
+// Follow a user
+app.post('/follow/:username', isAuthenticated, async (req, res) => {
+    const targetUsername = req.params.username;
+    const currentUser = await getCurrentUser(req);
+
+    if (currentUser.username === targetUsername) {
+        return res.status(403).json({ success: false, message: 'Cannot follow yourself' });
+    }
+
+    const targetUser = await findUserByUsername(targetUsername);
+
+    if (!targetUser) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if already following to prevent multiple increments
+    const isFollowing = await db.get('SELECT * FROM followers WHERE follower = ? AND following = ?', [currentUser.username, targetUsername]);
+
+    if (!isFollowing) {
+        await db.run('INSERT INTO followers (follower, following) VALUES (?, ?)', [currentUser.username, targetUsername]);
+        await db.run('UPDATE users SET followerCount = followerCount + 1 WHERE username = ?', [targetUsername]);
+        res.json({ success: true, message: 'Followed successfully' });
+    } else {
+        res.status(403).json({ success: false, message: 'Already following' });
+    }
+});
+
+// Unfollow a user
+app.post('/unfollow/:username', isAuthenticated, async (req, res) => {
+    const targetUsername = req.params.username;
+    const currentUser = await getCurrentUser(req);
+
+    const isFollowing = await db.get('SELECT * FROM followers WHERE follower = ? AND following = ?', [currentUser.username, targetUsername]);
+
+    if (isFollowing) {
+        await db.run('DELETE FROM followers WHERE follower = ? AND following = ?', [currentUser.username, targetUsername]);
+        await db.run('UPDATE users SET followerCount = followerCount - 1 WHERE username = ?', [targetUsername]);
+        res.json({ success: true, message: 'Unfollowed successfully' });
+    } else {
+        res.status(403).json({ success: false, message: 'Not following' });
+    }
+});
+
+
+
 // Server Activation
 
 initializeDB().then(() => {
@@ -383,19 +438,28 @@ async function getCurrentUser(req) {
     return user;
 }
 
-// Function to get all posts, sorted by latest first
-async function getPosts() {
-    return await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
-}
+// // Function to get all posts, sorted by latest first
+// async function getPosts() {
+//     return await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
+// }
 
 // Modify getPosts or similar function to also fetch comments
-async function getPosts() {
+// Function to get all posts, sorted by latest first
+async function getPosts(currentUser) {
     const posts = await db.all('SELECT * FROM posts ORDER BY timestamp DESC');
     for (let post of posts) {
         post.comments = await getCommentsByPostId(post.id);
+        // Check if the current user is following the post's author
+        if (currentUser) {
+            const isFollowing = await db.get('SELECT * FROM followers WHERE follower = ? AND following = ?', [currentUser.username, post.username]);
+            post.isFollowing = !!isFollowing;
+        } else {
+            post.isFollowing = false;
+        }
     }
     return posts;
 }
+
 
 // Function to get comments 
 async function getCommentsByPostId(postId) {

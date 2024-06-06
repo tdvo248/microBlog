@@ -23,6 +23,12 @@
             {{else}}
                 <button class="like-button" data-id="{{id}}" data-liked="false" onclick="handleLikeClick(event)">♡ {{likes}}</button>
             {{/if}}
+
+            {{#unless (ifCond user.username username)}}
+                <button onclick="handleFollowClick('{{username}}', this)" class="follow-btn">{{#if isFollowing}}Unfollow{{else}}Follow{{/if}}</button>
+            {{/unless}}
+
+
             <span>by {{username}} on {{timestamp}}</span>
         </div>
         <!-- Comment section starts here -->
@@ -86,4 +92,24 @@
             console.error('Error:', error);
         });
     }    
+
+    function handleFollowClick(username, button) {
+        const action = button.textContent.trim() === 'Follow' ? 'follow' : 'unfollow';
+    
+        fetch(`/${action}/${username}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                button.textContent = action === 'follow' ? 'Unfollow' : 'Follow';
+            } else {
+                console.error('Action failed:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
 </script>
